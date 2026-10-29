@@ -1,0 +1,1784 @@
+/**
+ * NEXIS — Dig. Win. Repeat.
+ * Google Apps Script Backend — Code.gs
+ *
+ * ═══ SHEET SETUP ═══
+ * 1. Google Sheet එකක් හදන්න (ඕනෑ නමක්).
+ * 2. First tab rename: Customers  (customers only - owners and distributors keep their login inside the Owners / Distributors tabs)
+ * 3. Row 1 headers (A → O):
+ *    Username | Mobile | Email | PasswordHash | Coins | Wins | AttemptsToday | LastPlayDate | TreasureTile | LastDigResult | DisplayName | Bio | Played | Lost | Registered
+ *    (Played, Lost, Registered = M, N, O columns. Script එක ඉබේම headers දාගන්නවා.)
+ *
+ * ═══ CUSTOMER ID ═══
+ * Customer ID එක Users sheet එකේ row number එකෙන් හැදෙනවා:
+ *    Row 2 → CUS - 0001, Row 3 → CUS - 0002 ...
+ *
+ * ═══ REGISTERED DATE ═══
+ * Customer register වුණ දවස Users sheet එකේ O column (Registered) එකේ yyyy-mm-dd විදියට ලියැවෙනවා.
+ * O හිස් customer කෙනෙක් login වෙද්දී ඉබේම මේ පිළිවෙලින් හොයලා O එකේ ලියනවා:
+ *    Activity tab 'join' row → Owners/Distributors tab එකේ Date & Time → පළවෙනි Activity දවස → අද දවස
+ * වැරදි දවසක් වැටුණොත් O column එකේ yyyy-mm-dd විදියට අතින් හදන්න.
+ *
+ * 4. Extensions → Apps Script → Code.gs paste කරන්න.
+ * 5. "Index" HTML file add කරලා Index.html paste කරන්න.
+ * 6. Deploy → New deployment → Web app
+ *    Execute as: Me | Access: Anyone
+ * 7. URL open කරන්න — done!
+ *
+ * ═══ IMAGES ═══
+ * Profile/cover images browser localStorage ගේ save වෙනවා.
+ * Sheet ගේ save නොවෙයි (size limit නිසා).
+ * Cross-device sync ඕනෑ නම් Google Drive integration ඕනෑ.
+ */
+
+var SHEET_NAME    = 'Customers';   // customers only (old name: Users - renamed automatically)
+var GRID_SIZE     = 36;
+var DAILY_DIGS    = 5;
+var COINS_PER_WIN = 50;
+var STARTER_COINS = 100;
+var SALT          = 'nexis-salt-v1';
+
+var COL = {
+  USERNAME:    0,
+  MOBILE:      1,
+  EMAIL:       2,
+  PASSHASH:    3,
+  COINS:       4,
+  WINS:        5,
+  ATTEMPTS:    6,
+  LASTDATE:    7,
+  TREASURE:    8,
+  LASTRESULT:  9,
+  DISPLAYNAME: 10,
+  BIO:         11,
+  PLAYED:      12,
+  LOST:        13,
+  REGISTERED:  14
+};
+var NUM_COLS = 15;
+
+/* ===== ACCOUNTS ARE STORED PER ROLE =====
+   Customers    -> "Customers" tab  : A Username | B Mobile | C Email | D PasswordHash | E Coins | F Wins | G AttemptsToday | H LastPlayDate | I TreasureTile | J LastDigResult | K DisplayName | L Bio | M Played | N Lost | O Registered
+   Owners       -> "Owners" tab     : A..H = access request / owner data (F City | G Activities | H Avatar), then I Username | J PasswordHash | K DisplayName | L Bio | M Registered   (same row as the owner's request)
+   Distributors -> "Distributors"   : A..G = access request / data,       then H Username | I PasswordHash | J DisplayName | K Bio | L Registered
+   Index = position in COL (0..14); value = physical column (1-based), 0 = not stored for this role. */
+var ACC_MAP_CUSTOMER = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+var ACC_MAP_OWNER    = [9, 3, 0, 10, 0, 0, 0, 0, 0, 0, 11, 12, 0, 0, 13];
+var ACC_MAP_DIST     = [8, 3, 0, 9, 0, 0, 0, 0, 0, 0, 10, 11, 0, 0, 12];
+var ACC_DEFS         = ['', '', '', '', 0, 0, DAILY_DIGS, '', 0, '', '', '', 0, 0, ''];
+var ACC_ROLES_       = ['customer', 'owner', 'distributor'];
+var ACTIVITY_SHEET = 'Activity';   // Activity log tab (ඉබේම හැදෙනවා)
+
+/* ── WEB APP ENTRY ──────────────────────────────── */
+function doGet(e) {
+  if (e && e.parameter && e.parameter.action === 'approve') {
+    return approvePage_(e.parameter.m, e.parameter.t, e.parameter.k);
+  }
+  return HtmlService.createTemplateFromFile('Index')
+    .evaluate()
+    .setTitle('Nexis — Dig. Win. Repeat.')
+    .addMetaTag('viewport','width=device-width, initial-scale=1, viewport-fit=cover')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/* ── API BRIDGE (GitHub Pages / phone → this same Sheets backend) ───────────
+   The GitHub site calls: fetch(WEB_APP_URL, {method:'POST', body: JSON.stringify({fn, args})})
+   Every public function above (loginUser, registerUser, digTile, ...) is callable this way.
+   Functions ending with "_" stay private. Setup helpers are blocked. */
+var API_BLOCKED_ = { doGet: 1, doPost: 1, authorizeAccess: 1, authorizeGoods: 1, authorizeSlip: 1, showNexisSheetId: 1 };
+function doPost(e) {
+  var out;
+  try {
+    var req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    var fn  = String(req.fn || '');
+    if (!/^[A-Za-z][A-Za-z0-9]*$/.test(fn) || API_BLOCKED_[fn]) throw new Error('Bad request');
+    var f = globalThis[fn];
+    if (typeof f !== 'function') throw new Error('Unknown function: ' + fn);
+    out = { ok: true, data: f.apply(null, req.args || []) };
+  } catch (err) {
+    out = { ok: false, error: String((err && err.message) || err) };
+  }
+  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ── HELPERS ────────────────────────────────────── */
+function getSheet_() {
+  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    var old = ss.getSheetByName('Users');          // old tab name -> becomes the Customers tab (data is kept)
+    if (old) { old.setName(SHEET_NAME); sheet = old; }
+    else {
+      sheet = ss.insertSheet(SHEET_NAME);
+      sheet.getRange(1, 1, 1, NUM_COLS).setValues([['Username', 'Mobile', 'Email', 'PasswordHash', 'Coins', 'Wins', 'AttemptsToday', 'LastPlayDate', 'TreasureTile', 'LastDigResult', 'DisplayName', 'Bio', 'Played', 'Lost', 'Registered']]);
+    }
+  }
+  if (sheet.getMaxColumns() < NUM_COLS) sheet.insertColumnsAfter(sheet.getMaxColumns(), NUM_COLS - sheet.getMaxColumns());
+  if (!sheet.getRange(1, COL.PLAYED     + 1).getValue()) sheet.getRange(1, COL.PLAYED     + 1).setValue('Played');
+  if (!sheet.getRange(1, COL.LOST       + 1).getValue()) sheet.getRange(1, COL.LOST       + 1).setValue('Lost');
+  if (!sheet.getRange(1, COL.REGISTERED + 1).getValue()) sheet.getRange(1, COL.REGISTERED + 1).setValue('Registered');
+  return sheet;
+}
+
+function today_() {
+  return Utilities.formatDate(
+    new Date(), Session.getScriptTimeZone() || 'GMT', 'yyyy-MM-dd'
+  );
+}
+
+function hashPw_(pw) {
+  var bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256, SALT + pw
+  );
+  return bytes.map(function(b){
+    return (b < 0 ? b + 256 : b).toString(16).padStart(2,'0');
+  }).join('');
+}
+
+/* ===== ACCOUNT STORE : one API over the three role tabs ===== */
+function accSheet_(kind) { var sh = ownersSheet_(kind); cityTabInit_(sh, kind); return sh; }
+
+function accStore_(role) {
+  if (role === 'owner')       return { role: 'owner',       kind: 'hunt', sh: accSheet_('hunt'), map: ACC_MAP_OWNER,    defs: ACC_DEFS };
+  if (role === 'distributor') return { role: 'distributor', kind: 'race', sh: accSheet_('race'), map: ACC_MAP_DIST,     defs: ACC_DEFS };
+  return                             { role: 'customer',    kind: '',     sh: getSheet_(),       map: ACC_MAP_CUSTOMER, defs: ACC_DEFS };
+}
+
+/* physical row values -> account array in COL order */
+function accVirt_(st, rv) {
+  var v = [];
+  for (var i = 0; i < NUM_COLS; i++) {
+    var c = st.map[i];
+    v.push(c ? (c - 1 < rv.length ? rv[c - 1] : '') : st.defs[i]);
+  }
+  return v;
+}
+
+/* every row that has a username (= a real account) */
+function accAll_(st) {
+  var data = st.sh.getDataRange().getValues(), out = [];
+  for (var i = 1; i < data.length; i++) {
+    var v = accVirt_(st, data[i]);
+    if (!String(v[COL.USERNAME]).trim()) continue;
+    out.push({ row: i + 1, v: v, name: String(data[i][1] || '').trim() });
+  }
+  return out;
+}
+
+function accRead_(st, row) {
+  var n = Math.max(st.sh.getLastColumn(), 1);
+  return accVirt_(st, st.sh.getRange(row, 1, 1, n).getValues()[0]);
+}
+function accSet_(st, row, idx, val)     { var c = st.map[idx]; if (c) st.sh.getRange(row, c).setValue(val); }
+function accSetText_(st, row, idx, val) { var c = st.map[idx]; if (c) st.sh.getRange(row, c).setNumberFormat('@').setValue(val); }
+
+/* username -> { role, st, row, v }   (customer / owner / distributor) */
+function findAcct_(username) {
+  var u = String(username || '').trim().toLowerCase();
+  if (!u) return null;
+  for (var r = 0; r < ACC_ROLES_.length; r++) {
+    var st = accStore_(ACC_ROLES_[r]), all = accAll_(st);
+    for (var i = 0; i < all.length; i++) {
+      if (String(all[i].v[COL.USERNAME]).trim().toLowerCase() === u) return { role: st.role, st: st, row: all[i].row, v: all[i].v };
+    }
+  }
+  return null;
+}
+
+/* mobile -> { role, st, row, v } */
+function findAcctByMobile_(mobile) {
+  var key = normMobile_(mobile);
+  if (!key) return null;
+  for (var r = 0; r < ACC_ROLES_.length; r++) {
+    var st = accStore_(ACC_ROLES_[r]), all = accAll_(st);
+    for (var i = 0; i < all.length; i++) {
+      if (normMobile_(all[i].v[COL.MOBILE]) === key) return { role: st.role, st: st, row: all[i].row, v: all[i].v };
+    }
+  }
+  return null;
+}
+
+function findRow_(sheet, username) {
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][COL.USERNAME]).toLowerCase() ===
+        String(username).toLowerCase()) return i + 1;
+  }
+  return -1;
+}
+
+function findRowByMobile_(sheet, mobile) {
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][COL.MOBILE]) === String(mobile)) return i + 1;
+  }
+  return -1;
+}
+
+/* ── ACTIVITY LOG ──────────────────────────────────
+   Activity tab: Date | Time | Username | Type | Title | Detail | Coins
+   Type: win / miss / join */
+function activitySheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(ACTIVITY_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(ACTIVITY_SHEET);
+    sh.getRange(1, 1, 1, 7).setValues([['Date', 'Time', 'Username', 'Type', 'Title', 'Detail', 'Coins']]);
+  }
+  return sh;
+}
+
+function logActivity_(username, type, title, detail, coins) {
+  try {
+    var sh  = activitySheet_();
+    var tz  = Session.getScriptTimeZone() || 'GMT';
+    var now = new Date();
+    var row = sh.getLastRow() + 1;
+    sh.getRange(row, 1, 1, 2).setNumberFormat('@');   // Date/Time text විදියට තියාගන්නවා
+    sh.getRange(row, 1, 1, 7).setValues([[
+      Utilities.formatDate(now, tz, 'yyyy-MM-dd'),
+      Utilities.formatDate(now, tz, 'HH:mm'),
+      username, type, title, detail || '', Number(coins) || 0
+    ]]);
+  } catch (err) { Logger.log('logActivity_ failed: ' + err); }
+}
+
+/* Customer ගේ activity ඔක්කොම (අන්තිම 500) — Activity page එකයි Day pages වලටයි */
+function getActivity(username) {
+  username = String(username || '').trim().toLowerCase();
+  if (!username) return [];
+  var out = [];
+  var sh = activitySheet_();
+  var last = sh.getLastRow();
+  if (last >= 2) {
+    var data = sh.getRange(2, 1, last - 1, 7).getValues();
+    for (var i = 0; i < data.length; i++) {
+      var r = data[i];
+      if (String(r[2]).toLowerCase() !== username) continue;
+      out.push({
+        d: String(r[0]), time: String(r[1]), t: String(r[3]),
+        title: String(r[4]), meta: String(r[5]), coins: Number(r[6]) || 0
+      });
+    }
+    out = out.slice(-500);
+  }
+  // Loot Drop: owner ge stock sends -> Latest Activity (card: STOCK SENT, distributor name, pcs)
+  try {
+    getStockSends(username).forEach(function (s) {
+      out.push({ d: s.date, time: s.time, t: 'send', title: s.dist, meta: s.q.join(' / '), coins: 0, pcs: s.tot });
+    });
+  } catch (errS) { Logger.log('stock sends merge failed: ' + errS); }
+  // Customer ge verified bank-slip payments (Bank Slip sheet eken) — activity card widiyata, link eka ekka
+  try {
+    var ac = findAcct_(username);
+    if (ac) {
+      var mob = String(ac.v[COL.MOBILE]).replace(/\D/g, '');
+      purchasesFor_(mob).forEach(function (p) {
+        out.push({ d: p.d, time: p.time, t: 'pay', title: 'Payment verified', meta: p.url, coins: 0 });
+      });
+      try {   // Distributor kenek nam: ayage locations walata customers la karapu deval (collected / missing)
+        if (ac.role === 'distributor') {
+          distributorCustomerStats_(normMobile_(mob)).events.forEach(function (ev) { out.push(ev); });
+        }
+      } catch (e2) { Logger.log('distributor events failed: ' + e2); }
+    }
+  } catch (err) { Logger.log('purchases merge failed: ' + err); }
+  return out;
+}
+
+/* ── REGISTERED DATE ───────────────────────────────
+   Users sheet O column (Registered) → නැත්නම් Activity tab එකේ 'join' row එක */
+function dateStr_(v) {
+  var tz = Session.getScriptTimeZone() || 'GMT';
+  if (v instanceof Date) return Utilities.formatDate(v, tz, 'yyyy-MM-dd');
+  var s = String(v || '').trim();
+  if (!s) return '';
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  var d = new Date(s);
+  return isNaN(d.getTime()) ? '' : Utilities.formatDate(d, tz, 'yyyy-MM-dd');
+}
+
+/* Activity tab එකෙන් customer ගේ දවස. joinOnly=true නම් 'join' row එක විතරයි,
+   නැත්නම් join row එක, ඒකත් නැත්නම් පළවෙනි activity එකේ දවස */
+function activityDate_(username, joinOnly) {
+  var sh   = activitySheet_();
+  var last = sh.getLastRow();
+  if (last < 2) return '';
+  var u    = String(username || '').trim().toLowerCase();
+  var data = sh.getRange(2, 1, last - 1, 4).getValues();
+  var first = '';
+  for (var i = 0; i < data.length; i++) {
+    if (String(data[i][2]).trim().toLowerCase() !== u) continue;
+    var d = dateStr_(data[i][0]);
+    if (!d) continue;
+    if (String(data[i][3]) === 'join') return d;
+    if (!first) first = d;
+  }
+  return joinOnly ? '' : first;
+}
+
+/* Owners / Distributors tab එකේ (A: Date & Time) මේ mobile එකේ පරණම දවස */
+function ownersDate_(mobile) {
+  var key = normMobile_(mobile), best = '';
+  if (!key) return '';
+  ['hunt', 'race'].forEach(function (k) {
+    try {
+      var data = ownersSheet_(k).getDataRange().getValues();
+      for (var i = 1; i < data.length; i++) {
+        if (normMobile_(data[i][2]) === key) {
+          var d = dateStr_(data[i][0]);
+          if (d && (!best || d < best)) best = d;
+          break;
+        }
+      }
+    } catch (err) { Logger.log('ownersDate_ failed: ' + err); }
+  });
+  return best;
+}
+
+/* Registered date එක: O column → Activity 'join' → Owners/Distributors → පළවෙනි Activity → අද.
+   O හිස් නම් හොයාගත්ත දවස O column එකේ ලියනවා (ඊළඟ පාර ඒකම පේනවා, අතින් වෙනස් කරන්නත් පුළුවන්). */
+function resolveJoin_(st, row, v) {
+  var d = dateStr_(v[COL.REGISTERED]);
+  if (d) return d;
+  var username = v[COL.USERNAME];
+  d = activityDate_(username, true) || ownersDate_(v[COL.MOBILE]) || activityDate_(username, false) || today_();
+  try { accSetText_(st, row, COL.REGISTERED, d); }
+  catch (err) { Logger.log('Registered write failed: ' + err); }
+  return d;
+}
+
+/* Index.html එකෙන් ඉල්ලන function එක (login එකෙන් date එක ආවේ නැත්නම්) */
+function getJoinDate(username) {
+  var ac = findAcct_(username);
+  if (!ac) return '';
+  return resolveJoin_(ac.st, ac.row, ac.v);
+}
+
+/* Customer ID: row number එකෙන්. Row 1 = header, ඒ නිසා row 2 → CUS - 0001 */
+function custId_(row, role) {
+  var n = String(row - 1);
+  while (n.length < 4) n = '0' + n;
+  return (role === 'owner' ? 'OWN - ' : role === 'distributor' ? 'DST - ' : 'CUS - ') + n;
+}
+
+/* Played / Lost ගණන් ටික (Played හිස් නම් Wins + Lost ගන්නවා) */
+function stats_(v) {
+  var wins   = Number(v[COL.WINS])   || 0;
+  var lost   = Number(v[COL.LOST])   || 0;
+  var played = Math.max(Number(v[COL.PLAYED]) || 0, wins + lost);
+  return { played: played, wins: wins, lost: lost };
+}
+
+/* ── REGISTER ───────────────────────────────────── */
+function registerUser(username, mobile, password) {
+  username = (username || '').trim();
+  password =  password || '';
+  mobile   = String(mobile || '').replace(/\D/g, '');
+
+  // The role comes from the approved access request: Owners tab = owner, Distributors tab = distributor, otherwise customer
+  var role = 'customer', accRow = -1, ownerName = '';
+  try { var oa = accessStatus_(mobile, 'hunt'); if (oa.status === 'approved') { role = 'owner'; accRow = oa.row; ownerName = String(oa.name || '').trim(); } } catch (e0) {}
+  if (role === 'customer') {
+    try { var da = accessStatus_(mobile, 'race'); if (da.status === 'approved') { role = 'distributor'; accRow = da.row; } } catch (e1) {}
+  }
+  var display = username;
+  if (ownerName) {                         // owner: the name given in the access request is used exactly as typed
+    display  = ownerName;
+    username = ownerName.replace(/[^A-Za-z0-9_]/g, '_').substring(0, 24);
+  }
+
+  if (!username)
+    throw new Error('Enter a username.');
+  if (username.length > 24)
+    throw new Error('Username too long (max 24 characters).');
+  if (!/^[a-zA-Z0-9_]+$/.test(username))
+    throw new Error('Username: letters, numbers and underscores only.');
+  if (password.length < 4)
+    throw new Error('Password must be at least 4 characters.');
+  if (mobile.length < 9 || mobile.length > 15)
+    throw new Error('Enter a valid mobile number.');
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var st = accStore_(role);
+    if (role === 'customer') {
+      if (findAcctByMobile_(mobile)) throw new Error('This mobile number is already registered. Please log in.');
+    } else if (String(accRead_(st, accRow)[COL.USERNAME]).trim()) {
+      throw new Error('This mobile number is already registered. Please log in.');
+    }
+    if (findAcct_(username)) {
+      if (!ownerName) throw new Error('Username already taken.');
+      // owner: keep the exact name for display, only the internal login id gets a unique tail (never shown)
+      var base = username.substring(0, 17), cand = '', tries = 0;
+      do {
+        cand = base + '_' + mobile.slice(-4) + (tries ? String(Math.floor(Math.random() * 90) + 10) : '');
+        tries++;
+      } while (findAcct_(cand) && tries < 8);
+      if (findAcct_(cand)) throw new Error('Could not create the account. Please contact the admin.');
+      username = cand;
+    }
+
+    var joined = today_(), newRow;
+    if (role === 'customer') {
+      var treasure = Math.floor(Math.random() * GRID_SIZE);
+      st.sh.appendRow([
+        username, mobile, '', hashPw_(password),
+        STARTER_COINS, 0, DAILY_DIGS, joined, treasure, '',
+        display, '', 0, 0, ''
+      ]);
+      newRow = st.sh.getLastRow();
+      accSetText_(st, newRow, COL.REGISTERED, joined);
+    } else {                                 // owner / distributor: the login is saved in their own row (Owners / Distributors tab)
+      newRow = accRow;
+      accSetText_(st, newRow, COL.USERNAME, username);
+      accSet_(st, newRow, COL.PASSHASH, hashPw_(password));
+      accSet_(st, newRow, COL.DISPLAYNAME, display);
+      accSet_(st, newRow, COL.BIO, '');
+      accSetText_(st, newRow, COL.REGISTERED, joined);
+    }
+    var coins = (role === 'customer') ? STARTER_COINS : 0;
+    logActivity_(username, 'join', 'Joined Nexis', role === 'customer' ? 'Welcome bonus' : 'Registered as ' + role, coins);
+
+    return {
+      username: username, displayName: display, bio: '', role: role,
+      coins: coins, wins: 0, played: 0, lost: 0,
+      attemptsLeft: DAILY_DIGS, gridSize: GRID_SIZE,
+      row: newRow, customerId: custId_(newRow, role), joined: joined,
+      mobile: mobile
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* ── LOGIN ──────────────────────────────────────── */
+function pwOk_(v, password) {
+  return String(v[COL.PASSHASH]) === String(hashPw_(password));
+}
+/* username  ->  mobile number  ->  owner name from the access request (exact name the owner gave) */
+/* username  ->  mobile number  ->  owner / distributor name from the access request; searches all three role tabs */
+function resolveLogin_(input, password) {
+  var want = String(input).trim().toLowerCase();
+  var digits = String(input).replace(/\D/g, '');
+  var key = (digits.length >= 9 && digits.length <= 15) ? normMobile_(digits) : '';
+  var list = [], i;
+  ACC_ROLES_.forEach(function (role) {
+    var st = accStore_(role);
+    accAll_(st).forEach(function (a) { list.push({ role: role, st: st, row: a.row, v: a.v, name: a.name }); });
+  });
+  for (i = 0; i < list.length; i++)
+    if (String(list[i].v[COL.USERNAME]).trim().toLowerCase() === want && pwOk_(list[i].v, password)) return list[i];
+  if (key) for (i = 0; i < list.length; i++)
+    if (normMobile_(list[i].v[COL.MOBILE]) === key && pwOk_(list[i].v, password)) return list[i];
+  for (i = 0; i < list.length; i++)
+    if (list[i].role !== 'customer' && list[i].name.toLowerCase() === want && pwOk_(list[i].v, password)) return list[i];
+  return null;
+}
+
+function loginUser(username, password) {
+  username = (username || '').trim();
+  password =  password || '';
+  if (!username || !password)
+    throw new Error('Enter your username and password.');
+
+  var ac = resolveLogin_(username, password);
+  if (!ac) throw new Error('Incorrect username or password.');   // same message for every failure (no account leak)
+
+  var st = ac.st, row = ac.row, v = ac.v;
+  username = String(v[COL.USERNAME]);
+
+  var todayStr     = today_();
+  var attemptsLeft = Number(v[COL.ATTEMPTS]);
+  var lastDate     = String(v[COL.LASTDATE]);
+  var treasure     = Number(v[COL.TREASURE]);
+  var displayName  = v[COL.DISPLAYNAME] || username;
+  var bio          = v[COL.BIO] || '';
+
+  // Reset daily digs if new day
+  if (lastDate !== todayStr) {
+    attemptsLeft = DAILY_DIGS;
+    treasure     = Math.floor(Math.random() * GRID_SIZE);
+    accSet_(st, row, COL.ATTEMPTS,   attemptsLeft);
+    accSet_(st, row, COL.LASTDATE,   todayStr);
+    accSet_(st, row, COL.TREASURE,   treasure);
+    accSet_(st, row, COL.LASTRESULT, '');
+  }
+
+  var s = stats_(v);
+  return {
+    username: username, displayName: displayName, bio: bio, role: ac.role,
+    coins: Number(v[COL.COINS]), wins: s.wins,
+    played: s.played, lost: s.lost,
+    attemptsLeft: attemptsLeft, gridSize: GRID_SIZE,
+    row: row, customerId: custId_(row, ac.role),
+    joined: resolveJoin_(st, row, v),
+    mobile: String(v[COL.MOBILE]).replace(/\D/g, '')
+  };
+}
+
+/* ── UPDATE PROFILE (name + bio) ────────────────── */
+function updateProfile(username, displayName, bio) {
+  username    = (username    || '').trim();
+  displayName = (displayName || '').trim();
+  bio         = (bio         || '').trim();
+
+  if (!displayName)
+    throw new Error('Display name cannot be empty.');
+  if (displayName.length > 24)
+    throw new Error('Display name too long (max 24).');
+  if (bio.length > 60)
+    throw new Error('Bio too long (max 60 characters).');
+
+  var ac = findAcct_(username);
+  if (!ac) throw new Error('User not found.');
+
+  accSet_(ac.st, ac.row, COL.DISPLAYNAME, displayName);
+  accSet_(ac.st, ac.row, COL.BIO,         bio);
+
+  return { ok: true, displayName: displayName, bio: bio };
+}
+
+/* ── DIG TILE ───────────────────────────────────── */
+function digTile(username, tileIndex) {
+  username  = (username || '').trim();
+  tileIndex = Number(tileIndex);
+  if (isNaN(tileIndex) || tileIndex < 0 || tileIndex >= GRID_SIZE)
+    throw new Error('Invalid tile index.');
+
+  var ac       = findAcct_(username);
+  if (!ac) throw new Error('Player not found. Log in first.');
+  if (ac.role !== 'customer') throw new Error('Digging is only for customers.');
+  var sheet    = ac.st.sh;
+  var row      = ac.row;
+
+  var todayStr = today_();
+  var v        = sheet.getRange(row, 1, 1, NUM_COLS).getValues()[0];
+  var coins    = Number(v[COL.COINS]);
+  var wins     = Number(v[COL.WINS]);
+  var lost     = Number(v[COL.LOST]) || 0;
+  var played   = stats_(v).played;
+  var attempts = Number(v[COL.ATTEMPTS]);
+  var lastDate = String(v[COL.LASTDATE]);
+  var treasure = Number(v[COL.TREASURE]);
+
+  // Auto-reset if new day
+  if (lastDate !== todayStr) {
+    attempts = DAILY_DIGS;
+    treasure = Math.floor(Math.random() * GRID_SIZE);
+    sheet.getRange(row, COL.LASTDATE + 1).setValue(todayStr);
+    sheet.getRange(row, COL.TREASURE + 1).setValue(treasure);
+  }
+
+  if (attempts <= 0)
+    return { result: 'no_attempts', coins: coins, wins: wins, played: played, lost: lost, attemptsLeft: 0 };
+
+  attempts--;
+  played++;
+  var result;
+  if (tileIndex === treasure) {
+    coins  += COINS_PER_WIN;
+    wins   += 1;
+    result  = 'win';
+    // New treasure location for next round
+    treasure = Math.floor(Math.random() * GRID_SIZE);
+  } else {
+    result = 'miss';
+    lost  += 1;
+  }
+
+  sheet.getRange(row, COL.COINS      + 1).setValue(coins);
+  sheet.getRange(row, COL.WINS       + 1).setValue(wins);
+  sheet.getRange(row, COL.ATTEMPTS   + 1).setValue(attempts);
+  sheet.getRange(row, COL.TREASURE   + 1).setValue(treasure);
+  sheet.getRange(row, COL.LASTRESULT + 1).setValue(result);
+  sheet.getRange(row, COL.PLAYED     + 1).setValue(played);
+  sheet.getRange(row, COL.LOST       + 1).setValue(lost);
+
+  // Activity log එකට ලියනවා (Day pages වලට)
+  if (result === 'win') logActivity_(username, 'win',  'Treasure Found!', 'Dug Tile #' + (tileIndex + 1), COINS_PER_WIN);
+  else                  logActivity_(username, 'miss', 'Dig Missed',      'Dug Tile #' + (tileIndex + 1), 0);
+
+  return { result: result, coins: coins, wins: wins, played: played, lost: lost, attemptsLeft: attempts };
+}
+
+/* ── LEADERBOARD ────────────────────────────────── */
+function getLeaderboard() {
+  var sheet = getSheet_();
+  var data  = sheet.getDataRange().getValues();
+  var rows  = data.slice(1)
+    .filter(function(r){ return r[COL.USERNAME]; })
+    .map(function(r){
+      return {
+        username:    r[COL.USERNAME],
+        displayName: r[COL.DISPLAYNAME] || r[COL.USERNAME],
+        coins:       Number(r[COL.COINS]),
+        wins:        Number(r[COL.WINS])
+      };
+    });
+
+  rows.sort(function(a, b){
+    return (b.wins - a.wins) || (b.coins - a.coins);
+  });
+
+  return rows.slice(0, 10);
+}
+
+
+/* ══════════════════════════════════════════════════
+   ACCESS REQUESTS
+   Join The Hunt -> "Owners" tab | Join The Race -> "Distributors" tab
+   A: Date & time | B: Name | C: Mobile | D: Status | E: Token
+   Status: Pending / Approved  (blank = added by admin by hand = Approved)
+   ══════════════════════════════════════════════════ */
+var OWNERS_SHEET_ID = '1o-n6PxFcmdZWxyB8P9jP_9Wj_r8Qx9vHGNyZ9-VU340';
+var OWNERS_TAB      = 'Owners';
+var DISTRIBUTORS_TAB = 'Distributors';
+
+function kindOf_(k)  { return String(k || '').toLowerCase() === 'race' ? 'race' : 'hunt'; }
+function tabOf_(k)   { return kindOf_(k) === 'race' ? DISTRIBUTORS_TAB : OWNERS_TAB; }
+function labelOf_(k) { return kindOf_(k) === 'race' ? 'the Race' : 'the Hunt'; }
+var ADMIN_EMAIL     = 'nexisoptimus@gmail.com';
+
+var _ownSS_ = null;   // spreadsheet is opened once per request
+function ownersSheet_(kind) {
+  var ss = _ownSS_;
+  if (!ss) {
+    try { ss = SpreadsheetApp.openById(OWNERS_SHEET_ID); }
+    catch (err) { ss = SpreadsheetApp.getActiveSpreadsheet(); }
+    _ownSS_ = ss;
+  }
+  var tab = tabOf_(kind);
+  var sh = ss.getSheetByName(tab);
+  if (!sh) {
+    sh = ss.insertSheet(tab);
+    sh.getRange(1, 1, 1, 5).setValues([['Date & Time', 'Name', 'Mobile', 'Status', 'Token']]);
+  }
+  if (sh.getLastRow() === 0) sh.getRange(1, 1, 1, 5).setValues([['Date & Time', 'Name', 'Mobile', 'Status', 'Token']]);
+  return sh;
+}
+
+function normMobile_(m) {
+  var d = String(m || '').replace(/\D/g, '');
+  return d.length > 9 ? d.slice(-9) : d;
+}
+
+/* returns {status:'approved'|'pending'|'none', row, name, mobile, token} */
+function accessStatus_(mobile, kind) {
+  var key = normMobile_(mobile);
+  if (!key) return { status: 'none', row: -1 };
+  var sh   = ownersSheet_(kind);
+  var data = sh.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (normMobile_(data[i][2]) === key) {
+      var st = String(data[i][3] || '').trim().toLowerCase();
+      return {
+        status: (st === 'pending') ? 'pending' : 'approved',
+        row: i + 1, name: data[i][1], mobile: String(data[i][2]),
+        token: String(data[i][4] || '')
+      };
+    }
+  }
+  return { status: 'none', row: -1 };
+}
+
+/* Customer clicks "Send Request" (or returning customer types mobile only) */
+function submitAccessRequest(name, mobile, kind, city) {
+  kind   = kindOf_(kind);
+  name   = String(name || '').trim();
+  city   = String(city || '').trim();
+  mobile = String(mobile || '').replace(/\D/g, '');
+  if (mobile.length < 9 || mobile.length > 15)
+    throw new Error('Enter a valid mobile number.');
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var cur = accessStatus_(mobile, kind);
+    if (kind === 'hunt' && name) {
+      if (!/^[A-Za-z0-9_]{1,24}$/.test(name)) throw new Error('Name: letters, numbers and underscores only (max 24).');
+      if (cur.status !== 'none') {
+        if (String(cur.name || '').trim().toLowerCase() !== name.toLowerCase())
+          throw new Error('Name does not match this mobile number.');
+        if (String(cur.name) !== name) {                       // only capital / simple letters differ -> use what was typed now
+          ownersSheet_(kind).getRange(cur.row, 2).setValue(name);
+          cur.name = name;
+        }
+      }
+    }
+    if (cur.status === 'approved') return { status: 'approved', registered: isRegistered_(mobile, kind) };
+    if (cur.status === 'pending')  return { status: 'pending' };
+
+    if (!name) throw new Error('Enter your name.');
+    if (name.length > 40) throw new Error('Name too long (max 40 characters).');
+    if (kind === 'hunt') {
+      if (!city) throw new Error('Select your city.');
+      if (city.length > 40) throw new Error('City name too long.');
+    }
+
+    var sh    = ownersSheet_(kind);
+    var row   = sh.getLastRow() + 1;
+    var token = Utilities.getUuid();
+    var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'GMT', 'yyyy-MM-dd HH:mm:ss');
+    sh.getRange(row, 2, 1, 2).setNumberFormat('@');
+    sh.getRange(row, 1, 1, 5).setValues([[stamp, name, mobile, 'Pending', token]]);
+    if (kind === 'hunt') { cityTabInit_(sh, kind); sh.getRange(row, OWN_COL.CITY).setValue(city); }   // city -> Owners!F
+
+    try {
+      sendAdminMail_(name, mobile, token, stamp, kind, city);
+    } catch (err) {
+      sh.deleteRow(row);
+      Logger.log('Access mail failed: ' + err);
+      throw new Error('Could not send the request: ' + String(err && err.message || err).replace(/^Exception:\s*/i, ''));
+    }
+    return { status: 'pending' };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* Called every few seconds by the customer's waiting popup */
+function checkAccessStatus(mobile, kind) {
+  var r = accessStatus_(mobile, kindOf_(kind));
+  if (r.status === 'approved') return { status: 'approved', registered: isRegistered_(mobile, kindOf_(kind)) };
+  return { status: r.status };
+}
+
+/* kind given  -> has the approved Owner / Distributor already created a login?   no kind -> any account with this mobile */
+function isRegistered_(mobile, kind) {
+  try {
+    var m = String(mobile || '').replace(/\D/g, '');
+    if (kind) {
+      var k = kindOf_(kind), a = accessStatus_(m, k);
+      if (a.row < 2) return false;
+      return !!String(accRead_(accStore_(k === 'race' ? 'distributor' : 'owner'), a.row)[COL.USERNAME]).trim();
+    }
+    return findAcctByMobile_(m) !== null;
+  } catch (err) { return false; }
+}
+
+function sendAdminMail_(name, mobile, token, stamp, kind, city) {
+  kind = kindOf_(kind);
+  city = String(city || '').trim();
+  var isRace = (kind === 'race');
+  var role   = isRace ? 'Distributor' : 'Owner';
+  var accent = isRace ? '#00e58a' : '#ff6a32';   // heading / badge colour
+  var btnBg  = isRace ? '#00c46a' : '#ff4d2e';   // CONFIRM button: green for Distributor, orange for Owner
+  var btnTx  = '#0a0a0f';
+  var base = ScriptApp.getService().getUrl();
+  var link = base + '?action=approve&k=' + kind + '&m=' + encodeURIComponent(mobile) + '&t=' + encodeURIComponent(token);
+  var html =
+    '<div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;background:#0a0a0f;color:#eee;padding:28px;border:1px solid #333;border-top:4px solid ' + accent + ';">' +
+    '<div style="display:inline-block;background:' + accent + ';color:#0a0a0f;font-weight:bold;font-size:12px;letter-spacing:2px;padding:5px 12px;margin-bottom:14px;">' + role.toUpperCase() + ' REQUEST</div>' +
+    '<h2 style="margin:0 0 6px;color:' + accent + ';letter-spacing:1px;">NEXIS &mdash; New ' + role + ' Access Request</h2>' +
+    '<p style="color:#aaa;margin:0 0 18px;">Someone wants to join as ' + (isRace ? 'a Distributor (the Race)' : 'an Owner (the Hunt)') + '.</p>' +
+    '<table style="width:100%;font-size:15px;margin-bottom:22px;">' +
+    '<tr><td style="color:#888;padding:4px 0;">Role</td><td style="color:' + accent + ';font-weight:bold;">' + role + '</td></tr>' +
+    '<tr><td style="color:#888;padding:4px 0;">Name</td><td>' + esc_(name) + '</td></tr>' +
+    '<tr><td style="color:#888;padding:4px 0;">Mobile</td><td>' + esc_(mobile) + '</td></tr>' +
+    (city ? '<tr><td style="color:#888;padding:4px 0;">City</td><td style="color:' + accent + ';font-weight:bold;">' + esc_(city) + '</td></tr>' : '') +
+    '<tr><td style="color:#888;padding:4px 0;">Time</td><td>' + esc_(stamp) + '</td></tr></table>' +
+    '<a href="' + link + '" style="display:inline-block;background:' + btnBg + ';color:' + btnTx + ';font-weight:bold;' +
+    'text-decoration:none;padding:14px 28px;letter-spacing:1px;">CONFIRM ' + role.toUpperCase() + ' ACCESS</a>' +
+    '<p style="color:#666;font-size:12px;margin-top:18px;">If you do not want to allow this person, just ignore this email.</p></div>';
+  MailApp.sendEmail({
+    to: ADMIN_EMAIL,
+    subject: 'Nexis ' + role.toUpperCase() + ' access request: ' + name + ' (' + mobile + ')' + (city ? ' - ' + city : ''),
+    htmlBody: html,
+    body: role.toUpperCase() + ' access request from ' + name + ' (' + mobile + ')' + (city ? ', City: ' + city : '') + '. Confirm: ' + link
+  });
+}
+
+function esc_(t) {
+  return String(t).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+/* Admin clicks CONFIRM ACCESS in the email */
+function approvePage_(mobile, token, kind) {
+  kind = kindOf_(kind);
+  var msg, ok = false;
+  try {
+    var r = accessStatus_(mobile, kind);
+    if (r.row === -1) {
+      msg = 'Request not found.';
+    } else if (r.status === 'approved') {
+      ok = true; msg = 'Already approved: ' + esc_(r.name) + ' (' + esc_(r.mobile) + ')';
+    } else if (!token || token !== r.token) {
+      msg = 'Invalid or expired link.';
+    } else {
+      ownersSheet_(kind).getRange(r.row, 4).setValue('Approved');
+      ok = true; msg = 'Approved: ' + esc_(r.name) + ' (' + esc_(r.mobile) + ')';
+    }
+  } catch (err) {
+    msg = 'Something went wrong. Please try again.';
+  }
+  var page =
+    '<body style="margin:0;background:#0a0a0f;color:#eee;font-family:Arial,sans-serif;display:flex;' +
+    'align-items:center;justify-content:center;min-height:100vh;text-align:center;">' +
+    '<div><div style="font-size:54px;">' + (ok ? '&#9989;' : '&#10060;') + '</div>' +
+    '<h2 style="color:' + (ok ? '#00f0a0' : '#ff4d5e') + ';letter-spacing:1px;">' + msg + '</h2>' +
+    '<p style="color:#888;">You can close this tab.</p></div></body>';
+  return HtmlService.createHtmlOutput(page)
+    .setTitle('Nexis Access')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+
+/* ── RUN THIS ONCE from the Apps Script editor (select authorizeAccess → Run) ──
+   It asks you to allow Gmail + Sheets permissions and sends a test mail to the admin.
+   After that, deploy a NEW VERSION of the web app. */
+function authorizeAccess() {
+  ownersSheet_('hunt');
+  ownersSheet_('race');
+  MailApp.sendEmail(ADMIN_EMAIL, 'Nexis mail test', 'Mail permission works. You can close this.');
+  Logger.log('OK - mail sent to ' + ADMIN_EMAIL + '. Remaining daily quota: ' + MailApp.getRemainingDailyQuota());
+}
+
+
+/* ══════════════════════════════════════════════════
+   DISTRIBUTOR GOODS LOCATIONS
+   Distributor profile (Race page) eke "+ Add Location" form eka mehema save wenawa.
+   Sheet: 04.Distributor → tab "GoodsLocations"
+   A: Timestamp | B: Latitude | C: Longitude | D: Map Link | E: Note | F: Photo 1 | G: Photo 2
+   H: Voice Note | I: Row Link (summary page) | J: Distributor Mobile | K: Distributor Name
+   (A–I = My Business App eke form ekema thiyena columns. J, K aluth.)
+   ══════════════════════════════════════════════════ */
+var GOODS_SHEET_ID        = '1jtNwRysa8ZhnuJXBMHsuTCuN0L-HDz2qPzOeypPdb0Q';
+var GOODS_SHEET_NAME      = 'GoodsLocations';
+/* Photos/voice upload wena folder eka. Hiss ('') thibboth: oyage own Drive eke "Nexis Goods Uploads" folder eka use karanawa
+   (nathnam hadanawa). Wenama folder ekak ona nam eke ID eka methana danna — eka oyage account ekata Editor access thiyenna ona. */
+var GOODS_DRIVE_FOLDER_ID = '';
+var GOODS_FOLDER_NAME     = 'Nexis Goods Uploads';
+/* My Business App eke web app URL eka (?row=N summary page eka render karana eka) */
+var GOODS_VIEW_URL        = 'https://script.google.com/macros/s/AKfycbymKwclx8yMKJp_GSjoBltQ8xNBuN83EPxHHrD10ZRiVGNQ3aAnfBgzdkrt317Gj2QZAw/exec';
+/* Every saved entry's summary link is also copied to column A of this spreadsheet (same as My Business App) */
+var ROW_LINK_SHEET_ID     = '1ncPX2gH-PzCia22MjemJ4CVyEt87QpK2sk9fSl40fOA';
+
+/* Distributor check: username eken (login karapu kenek). Token ona na.
+   Username eka valid, ayath approved Distributor kenek nam {username, name, mobile(raw), key(last 9)} */
+function distributorFromUser_(username) {
+  username = String(username || '').trim();
+  if (!username) throw new Error('Please log in again.');
+  var ac = findAcct_(username);
+  if (!ac) throw new Error('User not found.');
+  if (ac.role !== 'distributor') throw new Error('NOT_DISTRIBUTOR');
+  var mobile = String(ac.v[COL.MOBILE]).replace(/\D/g, '');
+  return { username: String(ac.v[COL.USERNAME]), name: String(ac.v[COL.DISPLAYNAME] || ac.v[COL.USERNAME]), mobile: mobile, key: normMobile_(mobile) };
+}
+
+function goodsSheet_() {
+  var ss = SpreadsheetApp.openById(GOODS_SHEET_ID);
+  var sh = ss.getSheetByName(GOODS_SHEET_NAME);
+  if (!sh) sh = ss.insertSheet(GOODS_SHEET_NAME);
+  if (sh.getLastRow() === 0) {
+    sh.appendRow(['Timestamp', 'Latitude', 'Longitude', 'Map Link', 'Note', 'Photo 1', 'Photo 2', 'Voice Note', 'Row Link', 'Distributor Mobile', 'Distributor Name']);
+    sh.setFrozenRows(1);
+  } else {
+    if (sh.getMaxColumns() < 11) sh.insertColumnsAfter(sh.getMaxColumns(), 11 - sh.getMaxColumns());
+    if (!sh.getRange(1, 9).getValue())  sh.getRange(1, 9).setValue('Row Link');
+    if (!sh.getRange(1, 10).getValue()) sh.getRange(1, 10).setValue('Distributor Mobile');
+    if (!sh.getRange(1, 11).getValue()) sh.getRange(1, 11).setValue('Distributor Name');
+  }
+  return sh;
+}
+
+function fileIdOf_(url) {
+  var m = String(url || '').match(/[-\w]{25,}/);
+  return m ? m[0] : '';
+}
+
+/* Main upload folder eka (ID ekak thiyenawanam eka, nathnam nama eken) */
+function goodsRoot_() {
+  if (GOODS_DRIVE_FOLDER_ID) {
+    try { return DriveApp.getFolderById(GOODS_DRIVE_FOLDER_ID); }
+    catch (e) { Logger.log('Folder ID not usable, falling back to name: ' + e); }
+  }
+  var it = DriveApp.getFoldersByName(GOODS_FOLDER_NAME);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(GOODS_FOLDER_NAME);
+}
+
+/* Distributor kenekuta folder ekak (main folder eka athule) */
+function distFolder_(d) {
+  var root = goodsRoot_();
+  var name = 'Distributor ' + d.mobile;
+  var it = root.getFoldersByName(name);
+  return it.hasNext() ? it.next() : root.createFolder(name);
+}
+
+/* Photo / voice file ekak Drive ekata upload karanawa → file url ekak return karanawa.
+   (My Business App eke wage "anyone with the link" view — summary page eka wada karanna ona nisa) */
+function uploadGoodsFile(username, base64Data, fileName) {
+  var d = distributorFromUser_(username);
+  base64Data = String(base64Data || '');
+  if (base64Data.indexOf(',') === -1) throw new Error('Invalid file data.');
+  if (base64Data.length > 14 * 1024 * 1024) throw new Error('File too large (max ~10 MB).');
+  var parts = base64Data.split(',');
+  var ct = (parts[0].split(':')[1] || '').split(';')[0] || 'application/octet-stream';
+  var safe = String(fileName || 'file').replace(/[^\w.\-]+/g, '_').slice(0, 60);
+  var blob = Utilities.newBlob(Utilities.base64Decode(parts[1]), ct, d.key + '_' + Date.now() + '_' + safe);
+  var file = distFolder_(d).createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return { url: file.getUrl() };
+}
+
+function goodsEntry_(r, rowNum, tz) {
+  var ts = r[0] instanceof Date ? Utilities.formatDate(r[0], tz, 'yyyy-MM-dd HH:mm') : String(r[0] || '');
+  return {
+    row: rowNum, ts: ts,
+    lat: Number(r[1]) || 0, lng: Number(r[2]) || 0,
+    mapLink: String(r[3] || ''), note: String(r[4] || ''),
+    p1: fileIdOf_(r[5]), p2: fileIdOf_(r[6]), voice: fileIdOf_(r[7]),
+    summary: String(r[8] || '') || (GOODS_VIEW_URL + '?row=' + rowNum)
+  };
+}
+
+/* Form eka save: row ekak sheet ekata + summary link eka (Row Link) hadanawa */
+function saveGoodsEntry(username, data) {
+  var d = distributorFromUser_(username);
+  data = data || {};
+  var lat = Number(data.lat), lng = Number(data.lng);
+  if (!isFinite(lat) || !isFinite(lng) || (!lat && !lng)) throw new Error('Capture your current location first.');
+  var note = String(data.note || '').trim().slice(0, 300);
+  var urls = [data.photo1Url, data.photo2Url, data.voiceUrl].map(function (u) { return String(u || ''); });
+  urls.forEach(function (u) {
+    if (u && u.indexOf('https://drive.google.com/') !== 0) throw new Error('Invalid file link.');
+  });
+  if (!urls[0] || !urls[1]) throw new Error('2 photos are required.');
+  if (!urls[2]) throw new Error('A voice note is required.');
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sh = goodsSheet_();
+    var mapLink = 'https://www.google.com/maps?q=' + lat + ',' + lng;
+    sh.appendRow([new Date(), lat, lng, mapLink, note, urls[0], urls[1], urls[2], '', '', d.name]);
+    var rowNum = sh.getLastRow();
+    var rowUrl = GOODS_VIEW_URL + '?row=' + rowNum;
+    sh.getRange(rowNum, 9).setValue(rowUrl);
+    sh.getRange(rowNum, 10).setNumberFormat('@').setValue(d.mobile);
+    try {   // same as My Business App: copy the summary link to the other spreadsheet
+      var sh2 = SpreadsheetApp.openById(ROW_LINK_SHEET_ID).getSheets()[0];
+      sh2.getRange(sh2.getLastRow() + 1, 1).setValue(rowUrl);
+    } catch (linkErr) { Logger.log('Row link copy failed: ' + linkErr); }
+    logActivity_(d.username, 'loc', 'Location saved', rowUrl, 0);   // Activity card ekak auto hadenawa (summary link ekath ekka)
+    var tz = Session.getScriptTimeZone() || 'GMT';
+    var entry = goodsEntry_(sh.getRange(rowNum, 1, 1, 11).getValues()[0], rowNum, tz);
+    entry.count = countGoods_(sh, d.key);   // aluth total eka (profile eke notification card ekata)
+    return entry;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* Distributor ge profile eka open karaddi: eyage entries witharak (aluthma 50) */
+function getMyGoodsEntries(username) {
+  var d;
+  try { d = distributorFromUser_(username); }
+  catch (err) {
+    if (String(err && err.message) === 'NOT_DISTRIBUTOR') return { isDistributor: false, entries: [] };
+    throw err;
+  }
+  var sh   = goodsSheet_();
+  var last = sh.getLastRow();
+  if (last < 2) return { isDistributor: true, entries: [] };
+  var tz   = Session.getScriptTimeZone() || 'GMT';
+  var vals = sh.getRange(2, 1, last - 1, 11).getValues();
+  var out  = [];
+  for (var i = vals.length - 1; i >= 0 && out.length < 50; i--) {
+    if (normMobile_(vals[i][9]) !== d.key) continue;
+    out.push(goodsEntry_(vals[i], i + 2, tz));
+  }
+  return { isDistributor: true, entries: out };
+}
+
+/* Distributor kenek save karapu locations gana */
+function countGoods_(sh, key) {
+  var last = sh.getLastRow();
+  if (last < 2) return 0;
+  var vals = sh.getRange(2, 10, last - 1, 1).getValues(), n = 0;
+  for (var i = 0; i < vals.length; i++) if (normMobile_(vals[i][0]) === key) n++;
+  return n;
+}
+
+/* Distributor ge locations walata customers la karapu deval:
+   Bank Slip sheet eke Web URL (?row=N)  ->  N = goods sheet row  ->  Distributor Mobile (J) */
+function distributorCustomerStats_(key) {
+  var cache = CacheService.getScriptCache(), ck = 'nxdst:' + key;
+  var hit = cache.get(ck);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  var tz = Session.getScriptTimeZone() || 'GMT';
+  var gsh = goodsSheet_(), glast = gsh.getLastRow(), mine = {};
+  if (glast >= 2) {
+    var jv = gsh.getRange(2, 10, glast - 1, 1).getValues();
+    for (var i = 0; i < jv.length; i++) if (normMobile_(jv[i][0]) === key) mine[i + 2] = true;
+  }
+  var out = { collected: 0, missing: 0, events: [] };
+  var ss = SpreadsheetApp.openById(BANKSLIP_SHEET_ID);
+  var sh = ss.getSheetByName(BANKSLIP_SHEET_NAME) || ss.getSheets()[0];
+  var last = sh.getLastRow();
+  if (last >= 2) {
+    var vals = sh.getRange(2, 1, last - 1, 16).getValues();
+    for (var k = 0; k < vals.length; k++) {
+      var r = vals[k], st = String(r[14] || '').toUpperCase();
+      if (st !== 'COLLECTED' && st !== 'MISSING') continue;
+      var m = String(r[0] || '').match(/[?&]row=(\d+)/);
+      if (!m || !mine[Number(m[1])]) continue;
+      if (st === 'COLLECTED') out.collected++; else out.missing++;
+      var ts = (r[15] instanceof Date) ? r[15] : new Date(r[15]), ok = !isNaN(ts.getTime());
+      out.events.push({
+        d: ok ? Utilities.formatDate(ts, tz, 'yyyy-MM-dd') : '', time: ok ? Utilities.formatDate(ts, tz, 'HH:mm') : '',
+        t: st === 'COLLECTED' ? 'col' : 'mis',
+        title: st === 'COLLECTED' ? 'Customer collected item' : 'Item missing',
+        meta: String(r[0] || ''), coins: 0
+      });
+    }
+  }
+  out.events = out.events.slice(-100);
+  try { cache.put(ck, JSON.stringify(out), 60); } catch (e) {}
+  return out;
+}
+
+/* Nexis Users sheet eke spreadsheet ID eka (Bank Slip Code.gs eke NEXIS_USERS_SHEET_ID ekata) */
+function showNexisSheetId() {
+  Logger.log('NEXIS_USERS_SHEET_ID = ' + SpreadsheetApp.getActiveSpreadsheet().getId());
+}
+
+function getMyGoodsCount(username) {
+  var d;
+  try { d = distributorFromUser_(username); }
+  catch (err) {
+    if (String(err && err.message) === 'NOT_DISTRIBUTOR') return { isDistributor: false, count: 0 };
+    throw err;
+  }
+  var res = { isDistributor: true, count: countGoods_(goodsSheet_(), d.key), collected: 0, missing: 0 };
+  try { var st = distributorCustomerStats_(d.key); res.collected = st.collected; res.missing = st.missing; }
+  catch (e) { Logger.log('customer stats failed: ' + e); }
+  return res;
+}
+
+/* ══════════════════════════════════════════════════
+   CUSTOMER PURCHASES — Bank Slip app eke sheet eken (03.Bank Slip → Sheet1)
+   Columns: A Web URL | B Submitted Date | C Name | D Mobile | E Bank | F Account | G Amount
+            H Deposit Date | I Status | J Reference | K SMS | L Verification Status | M Price | N Item Name
+   Customer ge mobile number eken VERIFIED rows witharai kiyawanne.
+   ══════════════════════════════════════════════════ */
+var BANKSLIP_SHEET_ID   = '1ncPX2gH-PzCia22MjemJ4CVyEt87QpK2sk9fSl40fOA';
+var BANKSLIP_SHEET_NAME = 'Sheet1';
+
+function purchasesFor_(mobile) {
+  var key = normMobile_(mobile);
+  if (!key) return [];
+  var cache = CacheService.getScriptCache(), ck = 'nxbuy:' + key;
+  var hit = cache.get(ck);
+  if (hit) { try { return JSON.parse(hit); } catch (e) {} }
+  var ss = SpreadsheetApp.openById(BANKSLIP_SHEET_ID);
+  var sh = ss.getSheetByName(BANKSLIP_SHEET_NAME) || ss.getSheets()[0];
+  var last = sh.getLastRow(), out = [];
+  if (last >= 2) {
+    var tz   = Session.getScriptTimeZone() || 'GMT';
+    var vals = sh.getRange(2, 1, last - 1, 16).getValues();   // A..P  (O = Pickup Status, P = Pickup Time)
+    for (var i = vals.length - 1; i >= 0; i--) {
+      var r = vals[i];
+      if (String(r[11]).toUpperCase() !== 'VERIFIED') continue;
+      if (normMobile_(r[3]) !== key) continue;
+      var ts = (r[1] instanceof Date) ? r[1] : new Date(r[1]);
+      var ok = !isNaN(ts.getTime());
+      out.push({
+        row: i + 2, url: String(r[0] || ''), item: String(r[13] || ''),
+        amount: Number(r[6]) || 0, ref: String(r[9] || ''),
+        status: String(r[14] || '').toUpperCase(),
+        d: ok ? Utilities.formatDate(ts, tz, 'yyyy-MM-dd') : '',
+        time: ok ? Utilities.formatDate(ts, tz, 'HH:mm') : ''
+      });
+    }
+  }
+  try { cache.put(ck, JSON.stringify(out), 60); } catch (e) {}
+  return out;
+}
+
+/* Customer profile eke "MY ITEMS" section ekata */
+function getMyPurchases(username) {
+  username = String(username || '').trim();
+  var ac = findAcct_(username);
+  if (!ac) throw new Error('User not found.');
+  var mobile = String(ac.v[COL.MOBILE]).replace(/\D/g, '');
+  return purchaseSummary_(ac.role === 'distributor', purchasesFor_(mobile));
+}
+
+/* Profile eke card 3 ta: slips (verified), collected, missing */
+function purchaseSummary_(isDist, items) {
+  var total = 0, collected = 0, missing = 0;
+  items.forEach(function (it) {
+    total += it.amount;
+    if (it.status === 'COLLECTED') collected++;
+    else if (it.status === 'MISSING') missing++;
+  });
+  return { isDistributor: isDist, count: items.length, collected: collected, missing: missing, total: total, items: items.slice(0, 50) };
+}
+
+/* Customer item eka ganna giyama: "Collected" (location ekata gihin ganna) / "Missing" (goods nathi / naheta) kiyala mark karanawa */
+function markPurchase(username, row, status) {
+  status = String(status || '').toUpperCase();
+  if (status !== 'COLLECTED' && status !== 'MISSING') throw new Error('Invalid status.');
+  row = Number(row);
+  if (!row || row < 2) throw new Error('Invalid item.');
+  username = String(username || '').trim();
+  var ac = findAcct_(username);
+  if (!ac) throw new Error('User not found.');
+  var mobile = String(ac.v[COL.MOBILE]).replace(/\D/g, '');
+  var key = normMobile_(mobile);
+  var itemRow = [];
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = SpreadsheetApp.openById(BANKSLIP_SHEET_ID);
+    var sh = ss.getSheetByName(BANKSLIP_SHEET_NAME) || ss.getSheets()[0];
+    if (row > sh.getLastRow()) throw new Error('Item not found.');
+    var r = sh.getRange(row, 1, 1, 16).getValues()[0];
+    if (String(r[11]).toUpperCase() !== 'VERIFIED' || normMobile_(r[3]) !== key) throw new Error('This item does not belong to you.');
+    if (String(r[14] || '')) throw new Error('Already reported.');
+    itemRow = r;
+    if (!sh.getRange(1, 15).getValue()) sh.getRange(1, 15).setValue('Pickup Status');
+    if (!sh.getRange(1, 16).getValue()) sh.getRange(1, 16).setValue('Pickup Time');
+    sh.getRange(row, 15).setValue(status);
+    sh.getRange(row, 16).setValue(new Date());
+  } finally {
+    lock.releaseLock();
+  }
+  CacheService.getScriptCache().remove('nxbuy:' + key);
+  /* Me item eka thiyena distributor kawuda kiyala hoyagannawa (summary link eke row=N -> goods sheet row N) */
+  var dist = { mobile: '', name: '' };
+  try {
+    var mm = String(itemRow[0] || '').match(/[?&]row=(\d+)/);
+    if (mm) {
+      var gsh = goodsSheet_(), gr = Number(mm[1]);
+      if (gr >= 2 && gr <= gsh.getLastRow()) {
+        var gv = gsh.getRange(gr, 1, 1, 11).getValues()[0];
+        dist.mobile = String(gv[9] || ''); dist.name = String(gv[10] || '');
+      }
+    }
+  } catch (e) { Logger.log('distributor lookup failed: ' + e); }
+  if (dist.mobile) CacheService.getScriptCache().remove('nxdst:' + normMobile_(dist.mobile));
+  if (status === 'MISSING') {   // Owner ta email ekak (distributor ta in-app notice eka profile eke card eken enawa)
+    try {
+      MailApp.sendEmail({
+        to: ADMIN_EMAIL,
+        subject: 'Nexis: customer could not collect an item (MISSING)',
+        body: 'A customer reported that the item is MISSING at the location.\n\n' +
+              'Item: ' + (String(itemRow[13] || '') || ('row ' + row)) + '\n' +
+              'Customer: ' + String(itemRow[2] || '') + '  (' + mobile + ')\n' +
+              'Reference: ' + String(itemRow[9] || '') + '\n' +
+              'Distributor: ' + (dist.name || '-') + '  (' + (dist.mobile || '-') + ')\n' +
+              'Location link: ' + String(itemRow[0] || '') + '\n' +
+              'Time: ' + new Date() + '\n'
+      });
+    } catch (mailErr) { Logger.log('missing-mail failed: ' + mailErr); }
+  }
+  return purchaseSummary_(ac.role === 'distributor', purchasesFor_(mobile));
+}
+
+
+/* ── RUN THIS ONCE (select authorizeGoods → Run) ──
+   Drive + Sheets permissions allow karanna. Passe NEW VERSION deploy karanna. */
+function authorizeGoods() {
+  goodsSheet_();
+  var root = goodsRoot_();
+  var tmp  = root.createFolder('_nexis_auth_test');   // full Drive permission ona (upload walata wage)
+  tmp.setTrashed(true);
+  SpreadsheetApp.openById(ROW_LINK_SHEET_ID).getName();
+  SpreadsheetApp.openById(BANKSLIP_SHEET_ID).getName();
+  Logger.log('OK - goods sheet + Drive folder (create) + row-link sheet + bank slip sheet are reachable.');
+}
+
+/* ══════════════════════════════════════════════════
+   BANK SLIP VERIFICATION (Nexis Code.gs ඇතුළෙන්)
+   Nexis Code.gs එකේ අගට paste කරන්න (කිසිවක් replace කරන්න එපා).
+   Services (වම පැත්තේ +) වලින් "Drive API" (v3) add කරන්න.
+   Script Properties: INFOBIP_KEY, INFOBIP_BASE, INFOBIP_SENDER (Bank Slip project එකේ තිබූ ඒවාම)
+   ══════════════════════════════════════════════════ */
+var SLIP_ACCEPTED_ACCOUNTS = ['104953258816'];
+var SLIP_MAX_AGE_DAYS = 30;
+var SLIP_PRICE = 2500;
+var SC = {URL:1, DATE:2, NAME:3, CONTACT:4, BANK:5, ACC:6, AMOUNT:7, DEP_DATE:8, RCPT:9, REF:10, SMS:11, VERIFY:12, PRICE:13, ITEM:14};
+
+function slipSS_()    { return SpreadsheetApp.openById(BANKSLIP_SHEET_ID); }
+function slipSheet_() { var ss = slipSS_(); return ss.getSheetByName(BANKSLIP_SHEET_NAME) || ss.getSheets()[0]; }
+
+function getDefaultItem() {
+  var s = slipSheet_(), n = s.getLastRow();
+  if (n < 2) return null;
+  var vals = s.getRange(2, 1, n - 1, 14).getValues();
+  for (var i = 0; i < vals.length; i++) {
+    if (vals[i][SC.URL - 1] && !vals[i][SC.VERIFY - 1]) {
+      return {row: i + 2, name: String(vals[i][SC.ITEM - 1] || ('Item ' + (i + 2)))};
+    }
+  }
+  return null;
+}
+
+function getItem(row) {
+  row = Number(row);
+  if (!row || row < 2) return null;
+  var r = slipSheet_().getRange(row, 1, 1, 14).getValues()[0];
+  if (!r[SC.URL - 1] || r[SC.VERIFY - 1]) return null;
+  return {row: row, name: String(r[SC.ITEM - 1] || ''), price: SLIP_PRICE};
+}
+
+function slipOcr_(blob) {
+  var f = Drive.Files.create({name: 'ocr_tmp', mimeType: 'application/vnd.google-apps.document'}, blob, {ocrLanguage: 'en'});
+  try { return DocumentApp.openById(f.id).getBody().getText(); }
+  finally { Drive.Files.remove(f.id); }
+}
+
+function slipParseAmount_(raw) {
+  var s = String(raw || '').trim();
+  var m = s.match(/^([\d,.]*?)[,.](\d{2})$/);
+  if (m) return parseFloat(m[1].replace(/[,.]/g, '') + '.' + m[2]) || 0;
+  return parseFloat(s.replace(/[^\d]/g, '')) || 0;
+}
+
+function slipParse_(t) {
+  var g = function (re) { var m = t.match(re); return m ? m[1].trim() : ''; };
+  return {
+    bank: /sampath/i.test(t) ? 'Sampath Bank' : '',
+    account: g(/ACCOUNT\s*(?:NUMBER|NO)?\s*[:;.]?\s*(\d[\d ]{7,17}\d)/i).replace(/\s/g, ''),
+    amount: slipParseAmount_(g(/TOTAL\s*[:;.]?\s*(?:LKR|RS\.?)?\s*([\d.,]+)/i)),
+    status: g(/STATUS\s*[:;.]?\s*([A-Za-z]+)/i),
+    ref: g(/REF\s*NO\s*[:;.]?\s*([A-Z0-9\-]{8,})/i),
+    date: g(/DATE\s*[:;.]?\s*(\d{2}-\d{2}-\d{4})/i),
+    name: g(/CUSTOMER\s*NAME\s*[:;.]?\s*([A-Z][A-Z .]{2,40})/i)
+  };
+}
+
+function slipRecent_(d) {
+  var m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(d);
+  if (!m) return false;
+  var age = (Date.now() - new Date(+m[3], +m[2] - 1, +m[1]).getTime()) / 864e5;
+  return age >= -1 && age <= SLIP_MAX_AGE_DAYS + 1;
+}
+
+function slipRefUsed_(s, ref) {
+  var n = s.getLastRow();
+  return n > 1 && s.getRange(2, SC.REF, n - 1, 1).getValues().some(function (r) { return String(r[0]) === ref; });
+}
+
+function slipLog_(p, d, errs) {
+  var ss = slipSS_();
+  var l = ss.getSheetByName('Log') || ss.insertSheet('Log');
+  l.appendRow([new Date(), p.row, d.name || '', "'" + p.mobile, d.bank, "'" + d.account, d.amount, "'" + d.ref, d.status, errs.length ? errs.join('; ') : 'OK']);
+}
+
+function slipSendSms_(mobile, text) {
+  var pr = PropertiesService.getScriptProperties();
+  var key = pr.getProperty('INFOBIP_KEY'), base = pr.getProperty('INFOBIP_BASE');
+  if (!key || !base) return 'Not configured';
+  var to = String(mobile).replace(/\D/g, '');
+  if (to.indexOf('0') === 0) to = '94' + to.slice(1);
+  try {
+    var res = UrlFetchApp.fetch('https://' + base + '/sms/2/text/advanced', {
+      method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+      headers: {Authorization: 'App ' + key},
+      payload: JSON.stringify({messages: [{destinations: [{to: to}], from: pr.getProperty('INFOBIP_SENDER') || 'ServiceSMS', text: text}]})
+    });
+    return res.getResponseCode() < 300 ? 'Sent' : 'Failed ' + res.getResponseCode();
+  } catch (e) { return 'Failed'; }
+}
+
+function submitSlip(p) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    if (!isRegistered_(p.mobile)) {
+      slipLog_(p, {name:'', bank:'', account:'', amount:'', ref:'', status:''}, ['Mobile not registered in Nexis']);
+      return {ok: false, errors: ['This mobile number is not registered in Nexis. Use the number you registered with.']};
+    }
+    var s = slipSheet_(), row = Number(p.row);
+    var r = s.getRange(row, 1, 1, 14).getValues()[0];
+    if (!r[SC.URL - 1] || r[SC.VERIFY - 1]) return {ok: false, errors: ['This item is no longer available.']};
+
+    var d = slipParse_(slipOcr_(Utilities.newBlob(Utilities.base64Decode(p.data), p.mime, 'slip')));
+    var errs = [];
+    if (!d.bank) errs.push('Could not recognise a Sampath Bank slip');
+    if (!/success/i.test(d.status)) errs.push('Could not read STATUS = SUCCESS');
+    if (SLIP_ACCEPTED_ACCOUNTS.indexOf(d.account) === -1) errs.push('Account number does not match');
+    if (d.amount < SLIP_PRICE) errs.push('Amount is less than Rs. ' + SLIP_PRICE);
+    if (!d.ref) errs.push('Could not read the reference number');
+    else if (slipRefUsed_(s, d.ref)) errs.push('This slip was already used');
+    if (!slipRecent_(d.date)) errs.push('Slip date is too old or unreadable');
+    slipLog_(p, d, errs);
+    if (errs.length) return {ok: false, errors: errs};
+
+    [SC.CONTACT, SC.ACC, SC.REF].forEach(function (c) { s.getRange(row, c).setNumberFormat('@'); });
+    s.getRange(row, SC.DATE, 1, 11).setValues([[new Date(), d.name || '', p.mobile, d.bank, d.account, d.amount, d.date, d.status, d.ref, '', 'VERIFIED']]);
+    var url = r[SC.URL - 1];
+    var label = r[SC.ITEM - 1] ? (String(r[SC.ITEM - 1]) + ' - ') : '';
+    var sms = slipSendSms_(p.mobile, 'Payment verified. ' + label + 'Your link: ' + url);
+    s.getRange(row, SC.SMS).setValue(sms);
+    return {ok: true, url: url, sms: sms};
+  } finally { lock.releaseLock(); }
+}
+
+/* Editor එකෙන් එක් වරක් Run කරන්න: Drive/Docs/Sheets permissions allow කරන්න */
+function authorizeSlip() {
+  slipSS_().getName();
+  var f = Drive.Files.create({name: 'perm_tmp', mimeType: 'application/vnd.google-apps.document'});
+  DocumentApp.openById(f.id).getName();
+  Drive.Files.remove(f.id);
+  Logger.log('OK');
+}
+
+
+/* ══════════════════════════════════════════════════
+   CITY OWNERS  (admin panel → city → owner)
+   Owners tab (Join The Hunt)      : A Date&Time | B Name | C Mobile | D Status | E Token | F City | G Activities (JSON) | H Avatar (saved by the owner)
+   Distributors tab (Join The Race): A Date&Time | B Name | C Mobile | D Status | E Token | F City | G Owner Mobile (optional)
+   - Distributor picks the city in the app  -> saved to Distributors!F automatically (saveMyCity).
+   - Owner's City (F) is filled by the admin in the Owners tab. (Photo URL column was removed.)
+   - Distributors working under an owner = Owner Mobile (G) matches the owner, or G is empty and the City matches.
+   - Admin calls need Script Property  ADMIN_KEY  (= the admin panel password).
+   ══════════════════════════════════════════════════ */
+var OWN_COL = { CITY: 6, ACTS: 7, AVATAR: 8, LAT: 14, LNG: 15, SEEN: 16 };   // N Live Lat | O Live Lng | P Last Seen (owner's live location)
+var DST_COL = { CITY: 6, OWNER: 7 };
+var OWN_ACTS_DEFAULT = { items: true, notify: true, dnotify: true, public: false };   // live location has no switch: it is always on
+
+/* Admin panel login: username = ADMIN_EMAIL, password = Script Property ADMIN_KEY */
+function adminLogin(username, password) {
+  var k = PropertiesService.getScriptProperties().getProperty('ADMIN_KEY');
+  if (!k) throw new Error('ADMIN_KEY is not set (Project Settings > Script Properties).');
+  var okUser = String(username || '').trim().toLowerCase() === String(ADMIN_EMAIL).toLowerCase();
+  var okPass = String(password || '') === String(k);
+  return { ok: !!(okUser && okPass) };
+}
+
+function adminAuth_(key) {
+  var k = PropertiesService.getScriptProperties().getProperty('ADMIN_KEY');
+  if (!k) throw new Error('ADMIN_KEY is not set (Project Settings → Script Properties).');
+  if (String(key || '') !== k) throw new Error('Not authorised.');
+}
+
+var _tabInit_ = {};
+function cityTabInit_(sh, kind) {
+  if (_tabInit_[kind]) return;
+  if (kind !== 'race' && sh.getMaxColumns() >= 7 && String(sh.getRange(1, 7).getValue() || '').trim().toLowerCase() === 'photo url') {
+    sh.deleteColumn(7);   // old 'Photo URL' column is removed once; Activities/Avatar/Username... shift one column left
+  }
+  var heads = kind === 'race'
+    ? ['City', 'Owner Mobile', 'Username', 'Password Hash', 'Display Name', 'Bio', 'Registered']
+    : ['City', 'Activities', 'Avatar', 'Username', 'Password Hash', 'Display Name', 'Bio', 'Registered', 'Live Lat', 'Live Lng', 'Last Seen'];
+  var need = 5 + heads.length;
+  if (sh.getMaxColumns() < need) sh.insertColumnsAfter(sh.getMaxColumns(), need - sh.getMaxColumns());
+  var cur = sh.getRange(1, 6, 1, heads.length).getValues()[0];
+  for (var i = 0; i < heads.length; i++) {
+    if (!String(cur[i] || '').trim()) sh.getRange(1, 6 + i).setValue(heads[i]);
+  }
+  _tabInit_[kind] = true;
+}
+
+/* Distributor ('race') calls this after choosing a city on the details page */
+function saveMyCity(username, city) {
+  username = String(username || '').trim();
+  city = String(city || '').trim();
+  if (!username || !city || city.length > 40) return { ok: false };
+  var ac = findAcct_(username);
+  if (!ac || ac.role === 'customer') return { ok: false };   // only owners / distributors have a city
+  cityTabInit_(ac.st.sh, ac.st.kind);
+  ac.st.sh.getRange(ac.row, ac.role === 'distributor' ? DST_COL.CITY : OWN_COL.CITY).setValue(city);
+  return { ok: true, saved: [ac.st.kind] };
+}
+
+/* Login ekata passe: owner nam, city eka thiyenawada balanawa (city ekak nathnam app eka city select karanna ahanawa) */
+function getMyOwnerCity(username) {
+  username = String(username || '').trim();
+  if (!username) return { isOwner: false };
+  var ac = findAcct_(username);
+  if (!ac || ac.role !== 'owner') return { isOwner: false };
+  var city = String(ac.st.sh.getRange(ac.row, OWN_COL.CITY).getValue() || '').trim();
+  return { isOwner: true, city: city };
+}
+
+
+/* ===== Owners tab = the only owner source (Join The Hunt requests + city) ===== */
+
+/* Admin city list: which cities have a waiting request / an approved owner */
+function getOwnerBadges(adminKey) {
+  adminAuth_(adminKey);
+  var sh = ownersSheet_('hunt'); cityTabInit_(sh, 'hunt');
+  var data = sh.getDataRange().getValues(), pending = {}, owned = {};
+  for (var i = 1; i < data.length; i++) {
+    var city = String(data[i][OWN_COL.CITY - 1] || '').trim(); if (!city) continue;
+    if (String(data[i][3] || '').trim().toLowerCase() === 'pending') pending[city] = 1; else owned[city] = 1;
+  }
+  return { pending: pending, owned: owned };
+}
+
+/* cities already used (approved or waiting) */
+function getOwnerCities() {
+  var sh = ownersSheet_('hunt'), data = sh.getDataRange().getValues(), taken = [];
+  for (var i = 1; i < data.length; i++) {
+    var c = String(data[i][OWN_COL.CITY - 1] || '').trim(); if (c) taken.push(c);
+  }
+  return { taken: taken };
+}
+
+/* Admin city page: the waiting request for this city */
+function getOwnerRequest(city, adminKey) {
+  adminAuth_(adminKey);
+  var want = String(city || '').trim().toLowerCase(); if (!want) return { found: false };
+  var sh = ownersSheet_('hunt'), data = sh.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][3] || '').trim().toLowerCase() !== 'pending') continue;
+    if (String(data[i][OWN_COL.CITY - 1] || '').trim().toLowerCase() !== want) continue;
+    return { found: true, city: String(city), name: String(data[i][1] || ''), mobile: String(data[i][2] || '').replace(/\D/g, ''),
+             email: '', time: stampStr_(data[i][0]), agreement: '', file: '' };
+  }
+  return { found: false };
+}
+
+/* Admin: Confirm / Decline the waiting request of a city */
+function reviewOwnerRequest(city, decision, adminKey) {
+  adminAuth_(adminKey);
+  var want = String(city || '').trim().toLowerCase();
+  var lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    var sh = ownersSheet_('hunt'), data = sh.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][3] || '').trim().toLowerCase() !== 'pending') continue;
+      if (String(data[i][OWN_COL.CITY - 1] || '').trim().toLowerCase() !== want) continue;
+      if (decision === 'approve') sh.getRange(i + 1, 4).setValue('Approved');
+      else sh.deleteRow(i + 1);
+      return { ok: true, mailed: false };
+    }
+    throw new Error('No waiting request for this city.');
+  } finally { lock.releaseLock(); }
+}
+
+/* Logged-in account: is it an approved owner? */
+function ownerRowForUser_(username) {
+  var ac = findAcct_(String(username || '').trim());
+  if (!ac || ac.role !== 'owner') return null;
+  return { acc: { row: ac.row }, city: String(ac.st.sh.getRange(ac.row, OWN_COL.CITY).getValue() || '').trim() };
+}
+function isMyOwner(username) {
+  return { owner: !!ownerRowForUser_(username) };
+}
+function getMyOwnerProfile(username) {
+  var o = ownerRowForUser_(username);
+  if (!o || !o.city) return { found: false };
+  return cityOwnerView_(o.city);
+}
+
+/* Owner ('hunt') calls this after saving the profile -> chosen avatar name goes to Owners!I, admin sees it */
+function saveMyAvatar(username, avatarName) {
+  username = String(username || '').trim();
+  avatarName = String(avatarName || '').trim();
+  if (!username) return { ok: false, why: 'no username received' };
+  if (!/^[A-Za-z0-9 _-]{0,20}$/.test(avatarName)) return { ok: false, why: 'bad avatar name: ' + avatarName };
+  var ac = findAcct_(username);
+  if (!ac) return { ok: false, why: 'account "' + username + '" not found' };
+  if (ac.role !== 'owner') return { ok: false, why: 'this is a ' + ac.role + ' account, not an owner account' };
+  ac.st.sh.getRange(ac.row, OWN_COL.AVATAR).setValue(avatarName);
+  return { ok: true };
+}
+
+function cityOwnerRow_(city) {
+  var want = String(city || '').trim().toLowerCase();
+  if (!want) return null;
+  var sh = ownersSheet_('hunt');
+  cityTabInit_(sh, 'hunt');
+  var data = sh.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][3] || '').trim().toLowerCase() === 'pending') continue;
+    if (String(data[i][OWN_COL.CITY - 1] || '').trim().toLowerCase() === want) return { sh: sh, row: i + 1, v: data[i] };
+  }
+  return null;
+}
+
+/* Owners!G is written as readable text:  Accepting Items - ON | Customer Notifications - ON | Distributor Notifications - ON | Public Listing - OFF
+   (old JSON like {"items":true,...} is still understood and is converted to this text on the next admin change) */
+var OWN_ACTS_LABEL = { items: 'Accepting Items', notify: 'Customer Notifications', dnotify: 'Distributor Notifications', public: 'Public Listing' };
+
+function actsToText_(acts) {
+  return ['items', 'notify', 'dnotify', 'public'].map(function (k) {
+    return OWN_ACTS_LABEL[k] + ' - ' + (acts[k] ? 'ON' : 'OFF');
+  }).join(' | ');
+}
+
+function ownerActs_(raw) {
+  var acts = {}, k;
+  for (k in OWN_ACTS_DEFAULT) acts[k] = OWN_ACTS_DEFAULT[k];
+  var t = String(raw || '').trim();
+  if (!t) return acts;
+  if (t.charAt(0) === '{') {                                   // old JSON format
+    try { var o = JSON.parse(t); for (k in acts) if (typeof o[k] === 'boolean') acts[k] = o[k]; } catch (e) {}
+    return acts;
+  }
+  for (k in OWN_ACTS_LABEL) {                                   // readable text format
+    var m = t.match(new RegExp(OWN_ACTS_LABEL[k] + '\\s*-\\s*(ON|OFF)', 'i'));
+    if (m) acts[k] = (m[1].toUpperCase() === 'ON');
+  }
+  return acts;
+}
+
+function stampStr_(v) {
+  var tz = Session.getScriptTimeZone() || 'GMT';
+  if (v instanceof Date) return Utilities.formatDate(v, tz, 'yyyy-MM-dd HH:mm');
+  return String(v || '').trim().slice(0, 16);
+}
+
+function photoUrl_(u) {
+  u = String(u || '').trim();
+  if (!u) return '';
+  var m = u.match(/[-\w]{25,}/);
+  return (/drive\.google\.com|docs\.google\.com/.test(u) && m) ? 'https://drive.google.com/thumbnail?id=' + m[0] + '&sz=w800' : u;
+}
+
+function lastActive_(username) {
+  if (!username) return '';
+  var sh = activitySheet_(), last = sh.getLastRow();
+  if (last < 2) return '';
+  var data = sh.getRange(2, 1, last - 1, 3).getValues(), u = String(username).trim().toLowerCase();
+  for (var i = data.length - 1; i >= 0; i--) {
+    if (String(data[i][2]).trim().toLowerCase() === u) return (dateStr_(data[i][0]) + ' ' + String(data[i][1] || '')).trim();
+  }
+  return '';
+}
+
+function goodsCountsByKey_() {
+  var sh = goodsSheet_(), last = sh.getLastRow(), map = {};
+  if (last < 2) return map;
+  var vals = sh.getRange(2, 10, last - 1, 1).getValues();
+  for (var i = 0; i < vals.length; i++) { var k = normMobile_(vals[i][0]); if (k) map[k] = (map[k] || 0) + 1; }
+  return map;
+}
+
+/* Admin panel: the owner of a city + the distributors working under him */
+function getCityOwner(city, adminKey) {
+  adminAuth_(adminKey);
+  return cityOwnerView_(city);
+}
+function cityOwnerView_(city) {
+  var hit = cityOwnerRow_(city);
+  if (!hit) return { found: false, city: String(city || '') };
+  var v = hit.v, mobile = String(v[2] || '').replace(/\D/g, ''), key = normMobile_(mobile);
+
+  var username = String(v[ACC_MAP_OWNER[COL.USERNAME] - 1] || '').trim();   // the owner's login lives in this same Owners row
+
+  var dsh = ownersSheet_('race');
+  cityTabInit_(dsh, 'race');
+  var counts = {}; try { counts = goodsCountsByKey_() || {}; } catch (eg) { Logger.log('goods counts failed: ' + eg); }
+  var dd = dsh.getDataRange().getValues(), want = String(city).trim().toLowerCase();
+  var dist = [], tot = { loc: 0, col: 0, mis: 0 };
+  for (var j = 1; j < dd.length; j++) {
+    if (String(dd[j][3] || '').trim().toLowerCase() === 'pending') continue;
+    var dk = normMobile_(dd[j][2]); if (!dk) continue;
+    var ownerKey = normMobile_(dd[j][DST_COL.OWNER - 1]);
+    var mine = ownerKey ? (ownerKey === key) : (String(dd[j][DST_COL.CITY - 1] || '').trim().toLowerCase() === want);
+    if (!mine) continue;
+    var st = { collected: 0, missing: 0 };
+    try { st = distributorCustomerStats_(dk); } catch (e) { Logger.log('stats failed ' + dk + ': ' + e); }
+    var loc = counts[dk] || 0;
+    dist.push({ name: String(dd[j][1] || ''), loc: loc, col: st.collected, mis: st.missing });
+    tot.loc += loc; tot.col += st.collected; tot.mis += st.missing;
+  }
+  return {
+    found: true,
+    owner: {
+      city: String(city), id: 'OWN-' + ('000' + (hit.row - 1)).slice(-4), name: String(v[1] || ''), mobile: mobile,
+      joined: stampStr_(v[0]), last: lastActive_(username), status: 'ACTIVE', photo: '', avatar: String(v[OWN_COL.AVATAR - 1] || '').trim(),
+      acts: ownerActs_(v[OWN_COL.ACTS - 1])
+    },
+    stats: { distributors: dist.length, loc: tot.loc, col: tot.col, mis: tot.mis },
+    dist: dist.slice(0, 50)
+  };
+}
+
+/* Admin panel: toggle one activity on/off for the city's owner */
+function setOwnerActivity(city, act, value, adminKey) {
+  adminAuth_(adminKey);
+  if (!(act in OWN_ACTS_DEFAULT)) throw new Error('Unknown activity.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var hit = cityOwnerRow_(city);
+    if (!hit) throw new Error('No owner assigned to this city.');
+    var acts = ownerActs_(hit.v[OWN_COL.ACTS - 1]);
+    acts[act] = !!value;
+    hit.sh.getRange(hit.row, OWN_COL.ACTS).setValue(actsToText_(acts));
+    return { ok: true, acts: acts };
+  } finally { lock.releaseLock(); }
+}
+
+
+/* ══════════════════════════════════════════════════
+   OWNER LIVE LOCATION  (always on - no switch)
+   - Every logged-in owner's phone sends its position here every ~10 s (saveOwnerLocation).
+   - Latest position lives in the script cache (fast); a copy is written to Owners!N:P at most once a minute.
+   - Admin city page reads it with getOwnerLive (map refreshes every 5 s).
+   ══════════════════════════════════════════════════ */
+function ownerRowFast_(username) {
+  var u = String(username || '').trim().toLowerCase();
+  if (!u) return null;
+  var cache = CacheService.getScriptCache(), ck = 'ownrow_' + u;
+  var sh = ownersSheet_('hunt');
+  var r = Number(cache.get(ck) || 0), uc = ACC_MAP_OWNER[COL.USERNAME];
+  if (r > 1 && String(sh.getRange(r, uc).getValue()).trim().toLowerCase() === u) return { sh: sh, row: r };
+  var ac = findAcct_(username);                       // slow path: first call / row moved
+  if (!ac || ac.role !== 'owner') return null;
+  cache.put(ck, String(ac.row), 21600);
+  return { sh: ac.st.sh, row: ac.row };
+}
+
+function saveOwnerLocation(username, lat, lng) {
+  username = String(username || '').trim();
+  lat = Number(lat); lng = Number(lng);
+  if (!username || !isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return { ok: false, live: true };
+  var o = ownerRowFast_(username);
+  if (!o) return { ok: false, live: true };           // not an owner account (customers / distributors are ignored)
+  var cache = CacheService.getScriptCache(), key = 'ownloc_' + username.toLowerCase();
+  cache.put(key, JSON.stringify({ lat: lat, lng: lng, t: Date.now() }), 21600);
+  if (!cache.get(key + '_w')) {                       // sheet copy: at most once a minute
+    cache.put(key + '_w', '1', 60);
+    if (o.sh.getMaxColumns() < OWN_COL.SEEN) o.sh.insertColumnsAfter(o.sh.getMaxColumns(), OWN_COL.SEEN - o.sh.getMaxColumns());
+    o.sh.getRange(o.row, OWN_COL.LAT, 1, 3).setValues([[lat, lng, new Date()]]);
+  }
+  return { ok: true, live: true };
+}
+
+/* Admin city page: where is this city's owner right now? */
+function getOwnerLive(city, adminKey) {
+  adminAuth_(adminKey);
+  var hit = cityOwnerRow_(city);
+  if (!hit) return { found: false };
+  var v = hit.v;
+  var username = String(v[ACC_MAP_OWNER[COL.USERNAME] - 1] || '').trim();
+  var lat = null, lng = null, t = 0;
+  if (username) {
+    var c = CacheService.getScriptCache().get('ownloc_' + username.toLowerCase());
+    if (c) { try { var o = JSON.parse(c); lat = o.lat; lng = o.lng; t = o.t; } catch (e) {} }
+  }
+  if (lat == null) {                                  // cache expired -> last place saved in the sheet
+    var sl = v[OWN_COL.LAT - 1], sg = v[OWN_COL.LNG - 1], ss = v[OWN_COL.SEEN - 1];
+    if (sl !== '' && sg !== '' && !isNaN(Number(sl)) && !isNaN(Number(sg))) {
+      lat = Number(sl); lng = Number(sg); t = (ss instanceof Date) ? ss.getTime() : 0;
+    }
+  }
+  var out = { found: true, enabled: true, lat: null, lng: null, age: null };
+  if (lat != null) { out.lat = lat; out.lng = lng; out.age = t ? Math.max(0, Math.round((Date.now() - t) / 1000)) : 999999; }
+  return out;
+}
+
+/* Players' Race / Dig pages: approved owners whose "Public Listing" switch is ON */
+function getPublicOwners() {
+  var sh = ownersSheet_('hunt'); cityTabInit_(sh, 'hunt');
+  var data = sh.getDataRange().getValues(), out = [], uc = ACC_MAP_OWNER[COL.USERNAME] - 1;
+  for (var i = 1; i < data.length; i++) {
+    var v = data[i];
+    if (String(v[3] || '').trim().toLowerCase() !== 'approved') continue;
+    var city = String(v[OWN_COL.CITY - 1] || '').trim();
+    if (!city) continue;
+    if (!String(v[uc] || '').trim()) continue;         // owner must have created the login
+    if (!ownerActs_(v[OWN_COL.ACTS - 1]).public) continue;
+    out.push({ name: String(v[1] || '').trim(), city: city, photo: '', avatar: String(v[OWN_COL.AVATAR - 1] || '').trim() });
+  }
+  return out;
+}
+
+/* ══════════════════════════════════════════════════
+   LOOT DROP : stock sent by an owner to a distributor
+   "Stock Sends" tab (auto-created):
+   Date | Time | Owner | Distributor | DistributorID | Size1 | Size2 | Size3 | Total
+   ══════════════════════════════════════════════════ */
+var STOCK_SHEET = 'Stock Sends';
+
+function stockSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(STOCK_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(STOCK_SHEET);
+    sh.getRange(1, 1, 1, 9).setValues([['Date', 'Time', 'Owner', 'Distributor', 'DistributorID', 'Size1', 'Size2', 'Size3', 'Total']]);
+  }
+  return sh;
+}
+
+function saveStockSend(username, date, q, distName, distId) {
+  username = String(username || '').trim();
+  var ac = findAcct_(username);
+  if (!ac || ac.role !== 'owner') throw new Error('Only owners can send stock.');
+  date = String(date || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Invalid date.');
+  q = (q || []).slice(0, 3).map(function (n) { return Math.max(0, parseInt(n, 10) || 0); });
+  while (q.length < 3) q.push(0);
+  var tot = q[0] + q[1] + q[2];
+  if (!tot) throw new Error('Enter the sent pieces.');
+  distName = String(distName || '').trim();
+  distId   = String(distId || '').trim();
+  if (!distName) throw new Error('Select a distributor.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    var sh  = stockSheet_();
+    var tz  = Session.getScriptTimeZone() || 'GMT';
+    var row = sh.getLastRow() + 1;
+    sh.getRange(row, 1, 1, 2).setNumberFormat('@');   // Date/Time kept as text
+    sh.getRange(row, 1, 1, 9).setValues([[date, Utilities.formatDate(new Date(), tz, 'HH:mm'), username, distName, distId, q[0], q[1], q[2], tot]]);
+  } finally { lock.releaseLock(); }
+  return { ok: true, tot: tot };
+}
+
+/* newest first, this owner's sends only (last 30) */
+function getStockSends(username) {
+  var u = String(username || '').trim().toLowerCase();
+  if (!u) return [];
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(STOCK_SHEET);
+  if (!sh) return [];
+  var last = sh.getLastRow();
+  if (last < 2) return [];
+  var data = sh.getRange(2, 1, last - 1, 9).getValues(), out = [];
+  for (var i = data.length - 1; i >= 0 && out.length < 30; i--) {
+    var r = data[i];
+    if (String(r[2]).trim().toLowerCase() !== u) continue;
+    out.push({
+      date: dateStr_(r[0]), time: String(r[1] || ''),
+      dist: String(r[3] || ''), did: String(r[4] || ''),
+      q: [Number(r[5]) || 0, Number(r[6]) || 0, Number(r[7]) || 0],
+      tot: Number(r[8]) || 0
+    });
+  }
+  return out;
+}
+
+/* ══════════════════════════════════════════════════
+   NEW CUSTOMER BADGE  (owner hub: red number on the Customers button)
+   count = customers registered since the owner last opened the Customers page.
+   The "seen" total is kept per owner in Script Properties (custseen_<username>).
+   First call just remembers the current total, so old customers never show up as new.
+   ══════════════════════════════════════════════════ */
+function custCount_() {
+  var sh = getSheet_(), last = sh.getLastRow();
+  if (last < 2) return 0;
+  var v = sh.getRange(2, 1, last - 1, 1).getValues(), n = 0;
+  for (var i = 0; i < v.length; i++) if (String(v[i][0]).trim()) n++;
+  return n;
+}
+
+function custSeenKey_(username) { return 'custseen_' + String(username || '').trim().toLowerCase(); }
+
+function getNewCustomers(username) {
+  if (!ownerRowFast_(username)) return { count: 0 };      // owners only
+  var props = PropertiesService.getScriptProperties(), key = custSeenKey_(username);
+  var total = custCount_(), seen = props.getProperty(key);
+  if (seen === null) { props.setProperty(key, String(total)); return { count: 0 }; }
+  seen = Number(seen) || 0;
+  if (total < seen) { props.setProperty(key, String(total)); seen = total; }   // customers were deleted
+  return { count: Math.max(0, total - seen) };
+}
+
+function clearNewCustomers(username) {
+  if (!ownerRowFast_(username)) return { ok: false };
+  PropertiesService.getScriptProperties().setProperty(custSeenKey_(username), String(custCount_()));
+  return { ok: true };
+}
