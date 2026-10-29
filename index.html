@@ -22,6 +22,7 @@
             var j; try{ j=JSON.parse(x.text); }catch(e){ j=null; }
             console.log('NEXIS API',k,x.status,String(x.text).slice(0,300));
             if(j&&j.ok){ if(ok) ok(j.data); }
+            else if(j&&Object.prototype.hasOwnProperty.call(j,'result')&&!j.error){ if(ok) ok(j.result); }
             else if(fail){ fail({message: j ? (j.error||('Server replied: '+String(x.text).slice(0,150))) : ('Bad reply ('+x.status+'): '+String(x.text).replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim().slice(0,150))}); }
           })
           .catch(function(e){ console.log('NEXIS API fetch error',e); if(fail) fail({message:'Network error: '+((e&&e.message)||e)}); });
