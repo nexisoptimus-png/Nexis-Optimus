@@ -7173,6 +7173,34 @@ try{ console.log('NEXIS build r9 · no green profile bar · owner has no locatio
 #pcOwners .po-chip img{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid var(--neon-cyan);flex:none;}
 #pcOwners .po-chip b{display:block;font-family:'Inter',sans-serif;font-size:13px;letter-spacing:1px;color:#fff;}
 #pcOwners .po-chip small{display:block;color:var(--text-dim);font-size:13px;letter-spacing:.5px;}
+
+#profilePage [style*="neon-cyan"]{color:#c4c4d0 !important;}
+/* ══ PROFILE PAGE: plain, clean look (neon / glow / animations removed) ══ */
+#profilePage *,#profile2Page *,#profile3Page *,
+#profilePage *::before,#profile2Page *::before,#profile3Page *::before,
+#profilePage *::after,#profile2Page *::after,#profile3Page *::after{text-shadow:none !important;box-shadow:none !important;animation:none !important;filter:none !important;}
+#profilePage .cover-glow,#profile2Page .cover-glow,#profile3Page .cover-glow,#profilePage .cover-grid,#profile2Page .cover-grid,#profile3Page .cover-grid,#profilePage .hud-card,#profile2Page .hud-card,#profile3Page .hud-card,#profilePage .nx-split,#profile2Page .nx-split,#profile3Page .nx-split,#profilePage .pn-ring,#profile2Page .pn-ring,#profile3Page .pn-ring,#profilePage .pn-sp,#profile2Page .pn-sp,#profile3Page .pn-sp,#profilePage .avatar-online,#profile2Page .avatar-online,#profile3Page .avatar-online{display:none !important;}
+#profilePage .cover,#profile2Page .cover,#profile3Page .cover{background:#14141b !important;}
+#profilePage .avatar-circle,#profile2Page .avatar-circle,#profile3Page .avatar-circle{border:4px solid #0a0a0f !important;background:#2a2a36 !important;}
+#profilePage .avatar-row,#profile2Page .avatar-row,#profile3Page .avatar-row{margin-top:-40px !important;align-items:flex-end;}
+#profilePage .avatar-info,#profile2Page .avatar-info,#profile3Page .avatar-info{padding-top:26px;padding-bottom:6px;}
+#profilePage .avatar-info h1,#profile2Page .avatar-info h1,#profile3Page .avatar-info h1{background:none !important;-webkit-background-clip:border-box !important;background-clip:border-box !important;color:#fff !important;-webkit-text-fill-color:#fff !important;font-size:clamp(24px,5vw,38px) !important;font-weight:800 !important;letter-spacing:.5px !important;line-height:1.2;text-transform:none !important;white-space:normal !important;overflow:visible !important;text-overflow:clip !important;}
+#profilePage .avatar-info .handle,#profile2Page .avatar-info .handle,#profile3Page .avatar-info .handle{color:#c4c4d0 !important;font-size:16px !important;margin-top:4px;}
+#profilePage .stat-card,#profile2Page .stat-card,#profile3Page .stat-card{background:#14141b !important;border:1px solid #2c2c3a !important;clip-path:none !important;border-radius:10px;}
+#profilePage .stat-card::after,#profile2Page .stat-card::after,#profile3Page .stat-card::after{display:none !important;}
+#profilePage .stat-card .val,#profile2Page .stat-card .val,#profile3Page .stat-card .val,#profilePage .stat-card.coins .val,#profile2Page .stat-card.coins .val,#profile3Page .stat-card.coins .val,#profilePage .stat-card.wins .val,#profile2Page .stat-card.wins .val,#profile3Page .stat-card.wins .val,#profilePage .stat-card.digs .val,#profile2Page .stat-card.digs .val,#profile3Page .stat-card.digs .val{color:#fff !important;}
+#profilePage .stat-card .sicon,#profile2Page .stat-card .sicon,#profile3Page .stat-card .sicon{background:#22222e !important;}
+#profilePage .panel-box,#profile2Page .panel-box,#profile3Page .panel-box{background:#14141b !important;border:1px solid #2c2c3a !important;border-radius:10px;}
+#profilePage .panel-box::before,#profile2Page .panel-box::before,#profile3Page .panel-box::before{display:none !important;}
+#profilePage .rank-badge,#profile2Page .rank-badge,#profile3Page .rank-badge{background:#1b1b26 !important;border:1px solid #2c2c3a !important;}
+#profilePage .rank-badge .rank-num,#profile2Page .rank-badge .rank-num,#profile3Page .rank-badge .rank-num{background:none !important;-webkit-text-fill-color:#fff !important;color:#fff !important;}
+#profilePage .rank-note span,#profile2Page .rank-note span,#profile3Page .rank-note span{color:#fff !important;}
+#profilePage .progress-fill,#profile2Page .progress-fill,#profile3Page .progress-fill{background:#8a8a9a !important;}
+#profilePage .nx-act,#profile2Page .nx-act,#profile3Page .nx-act{background:#22222e !important;border:1px solid #3a3a4a !important;color:#fff !important;}
+#profilePage .nx-act svg,#profile2Page .nx-act svg,#profile3Page .nx-act svg{filter:none !important;}
+#profilePage .pn-btn,#profile2Page .pn-btn,#profile3Page .pn-btn,#profilePage .game-play-btn,#profile2Page .game-play-btn,#profile3Page .game-play-btn{background:#3a3a4a !important;color:#fff !important;}
+#profilePage .edit-profile-btn,#profile2Page .edit-profile-btn,#profile3Page .edit-profile-btn{border-color:#3a3a4a !important;color:#fff !important;}
+#profilePage .nx-gen span.nx-id,#profile2Page .nx-gen span.nx-id,#profile3Page .nx-gen span.nx-id{color:#fff !important;}
 </style>
 <script>
 /* Dig Solo / Race Arena mode-select screen: show the Public Listing owners (switch ON) above the two cards */
