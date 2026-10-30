@@ -3,6 +3,7 @@
 <head>
 <!-- NEXIS API BRIDGE: lets this GitHub Pages site talk to the SAME Google Sheets backend (Apps Script web app) as the laptop version -->
 <script id="nxApiBridge">
+window.NEXIS_PROFILE_BUILD="v4";
 (function(){
   /* >>> PASTE YOUR APPS SCRIPT WEB APP URL HERE (ends with /exec) <<< */
   var URL_ = 'https://script.google.com/macros/s/AKfycby0U7bLt8ZDqTNmom_rF6VRlYVqrbz16Tr5XM_XWO9bsqgcWxX0HluUMlvBL13w6GM/exec';
@@ -7176,6 +7177,10 @@ try{ console.log('NEXIS build r9 · no green profile bar · owner has no locatio
 #pcOwners .po-chip small{display:block;color:var(--text-dim);font-size:13px;letter-spacing:.5px;}
 
 
+#profilePage .rc-c,#profile2Page .rc-c,#profile3Page .rc-c,#profilePage .rc-bar,#profile2Page .rc-bar,#profile3Page .rc-bar{display:none !important;}
+#profilePage .ra-cube b,#profile2Page .ra-cube b,#profile3Page .ra-cube b{text-shadow:none !important;}
+#profilePage .ra-cube,#profile2Page .ra-cube,#profile3Page .ra-cube{animation:none !important;opacity:1 !important;transform:none !important;}
+#profilePage .rt-col .pn-logout,#profile2Page .rt-col .pn-logout,#profile3Page .rt-col .pn-logout,#profilePage .pn-logout,#profile2Page .pn-logout,#profile3Page .pn-logout{width:min(300px,100%) !important;height:64px;padding:0 20px !important;align-self:center !important;margin:18px auto 0 !important;}
 /* ══ PROFILE PAGE: calm look — name large & clear, softer glow, same colours, grey route-line background ══ */
 #profilePage{position:relative;}
 #profilePage .pf-map{position:absolute;left:0;right:0;top:clamp(220px,31vw,460px);bottom:0;height:auto;z-index:0;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 88%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 88%,transparent 100%);}
