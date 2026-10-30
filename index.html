@@ -2341,6 +2341,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
 </div>
 
 <div id="profilePage">
+  <div class="rq-map pf-map" aria-hidden="true"><svg viewBox="0 0 1200 430" preserveAspectRatio="none"><g class="rq-roads"></g></svg></div>
   <div class="cover">
     <img id="coverBgImg" class="cover-bg-img" src="" alt="">
     <div class="cover-grid" id="coverGrid"></div>
@@ -7174,33 +7175,32 @@ try{ console.log('NEXIS build r9 · no green profile bar · owner has no locatio
 #pcOwners .po-chip b{display:block;font-family:'Inter',sans-serif;font-size:13px;letter-spacing:1px;color:#fff;}
 #pcOwners .po-chip small{display:block;color:var(--text-dim);font-size:13px;letter-spacing:.5px;}
 
-#profilePage [style*="neon-cyan"]{color:#c4c4d0 !important;}
-/* ══ PROFILE PAGE: plain, clean look (neon / glow / animations removed) ══ */
-#profilePage *,#profile2Page *,#profile3Page *,
-#profilePage *::before,#profile2Page *::before,#profile3Page *::before,
-#profilePage *::after,#profile2Page *::after,#profile3Page *::after{text-shadow:none !important;box-shadow:none !important;animation:none !important;filter:none !important;}
-#profilePage .cover-glow,#profile2Page .cover-glow,#profile3Page .cover-glow,#profilePage .cover-grid,#profile2Page .cover-grid,#profile3Page .cover-grid,#profilePage .hud-card,#profile2Page .hud-card,#profile3Page .hud-card,#profilePage .nx-split,#profile2Page .nx-split,#profile3Page .nx-split,#profilePage .pn-ring,#profile2Page .pn-ring,#profile3Page .pn-ring,#profilePage .pn-sp,#profile2Page .pn-sp,#profile3Page .pn-sp,#profilePage .avatar-online,#profile2Page .avatar-online,#profile3Page .avatar-online{display:none !important;}
-#profilePage .cover,#profile2Page .cover,#profile3Page .cover{background:#14141b !important;}
-#profilePage .avatar-circle,#profile2Page .avatar-circle,#profile3Page .avatar-circle{border:4px solid #0a0a0f !important;background:#2a2a36 !important;}
-#profilePage .avatar-row,#profile2Page .avatar-row,#profile3Page .avatar-row{margin-top:-40px !important;align-items:flex-end;}
-#profilePage .avatar-info,#profile2Page .avatar-info,#profile3Page .avatar-info{padding-top:26px;padding-bottom:6px;}
-#profilePage .avatar-info h1,#profile2Page .avatar-info h1,#profile3Page .avatar-info h1{background:none !important;-webkit-background-clip:border-box !important;background-clip:border-box !important;color:#fff !important;-webkit-text-fill-color:#fff !important;font-size:clamp(24px,5vw,38px) !important;font-weight:800 !important;letter-spacing:.5px !important;line-height:1.2;text-transform:none !important;white-space:normal !important;overflow:visible !important;text-overflow:clip !important;}
-#profilePage .avatar-info .handle,#profile2Page .avatar-info .handle,#profile3Page .avatar-info .handle{color:#c4c4d0 !important;font-size:16px !important;margin-top:4px;}
-#profilePage .stat-card,#profile2Page .stat-card,#profile3Page .stat-card{background:#14141b !important;border:1px solid #2c2c3a !important;clip-path:none !important;border-radius:10px;}
-#profilePage .stat-card::after,#profile2Page .stat-card::after,#profile3Page .stat-card::after{display:none !important;}
-#profilePage .stat-card .val,#profile2Page .stat-card .val,#profile3Page .stat-card .val,#profilePage .stat-card.coins .val,#profile2Page .stat-card.coins .val,#profile3Page .stat-card.coins .val,#profilePage .stat-card.wins .val,#profile2Page .stat-card.wins .val,#profile3Page .stat-card.wins .val,#profilePage .stat-card.digs .val,#profile2Page .stat-card.digs .val,#profile3Page .stat-card.digs .val{color:#fff !important;}
-#profilePage .stat-card .sicon,#profile2Page .stat-card .sicon,#profile3Page .stat-card .sicon{background:#22222e !important;}
-#profilePage .panel-box,#profile2Page .panel-box,#profile3Page .panel-box{background:#14141b !important;border:1px solid #2c2c3a !important;border-radius:10px;}
-#profilePage .panel-box::before,#profile2Page .panel-box::before,#profile3Page .panel-box::before{display:none !important;}
-#profilePage .rank-badge,#profile2Page .rank-badge,#profile3Page .rank-badge{background:#1b1b26 !important;border:1px solid #2c2c3a !important;}
-#profilePage .rank-badge .rank-num,#profile2Page .rank-badge .rank-num,#profile3Page .rank-badge .rank-num{background:none !important;-webkit-text-fill-color:#fff !important;color:#fff !important;}
-#profilePage .rank-note span,#profile2Page .rank-note span,#profile3Page .rank-note span{color:#fff !important;}
-#profilePage .progress-fill,#profile2Page .progress-fill,#profile3Page .progress-fill{background:#8a8a9a !important;}
-#profilePage .nx-act,#profile2Page .nx-act,#profile3Page .nx-act{background:#22222e !important;border:1px solid #3a3a4a !important;color:#fff !important;}
-#profilePage .nx-act svg,#profile2Page .nx-act svg,#profile3Page .nx-act svg{filter:none !important;}
-#profilePage .pn-btn,#profile2Page .pn-btn,#profile3Page .pn-btn,#profilePage .game-play-btn,#profile2Page .game-play-btn,#profile3Page .game-play-btn{background:#3a3a4a !important;color:#fff !important;}
-#profilePage .edit-profile-btn,#profile2Page .edit-profile-btn,#profile3Page .edit-profile-btn{border-color:#3a3a4a !important;color:#fff !important;}
-#profilePage .nx-gen span.nx-id,#profile2Page .nx-gen span.nx-id,#profile3Page .nx-gen span.nx-id{color:#fff !important;}
+
+/* ══ PROFILE PAGE: calm look — name large & clear, softer glow, same colours, grey route-line background ══ */
+#profilePage{position:relative;}
+#profilePage .pf-map{position:absolute;left:0;right:0;top:clamp(220px,31vw,460px);bottom:0;height:auto;z-index:0;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 88%,transparent 100%);mask-image:linear-gradient(180deg,transparent 0,#000 14%,#000 88%,transparent 100%);}
+#profilePage .pf-map svg{position:absolute;left:0;top:0;width:100%;height:100%;transform:none;}
+#profilePage .cover{z-index:1;}
+#profilePage .profile-wrap,#profile2Page .profile-wrap,#profile3Page .profile-wrap{position:relative;z-index:2;}
+#profilePage .avatar-row,#profile2Page .avatar-row,#profile3Page .avatar-row{flex-wrap:wrap;align-items:flex-end;row-gap:14px;}
+#profilePage .avatar-row .edit-profile-btn,#profile2Page .avatar-row .edit-profile-btn,#profile3Page .avatar-row .edit-profile-btn{margin-left:auto;}
+#profilePage .avatar-info,#profile2Page .avatar-info,#profile3Page .avatar-info{flex:0 0 100%;order:3;padding:6px 0 0;}
+#profilePage .avatar-info h1,#profile2Page .avatar-info h1,#profile3Page .avatar-info h1{background:none !important;-webkit-background-clip:border-box !important;background-clip:border-box !important;color:#fff !important;-webkit-text-fill-color:#fff !important;font-size:clamp(28px,6vw,44px) !important;font-weight:900 !important;letter-spacing:1px !important;line-height:1.15;white-space:normal !important;overflow:visible !important;text-overflow:clip !important;text-shadow:0 2px 10px rgba(0,0,0,.7) !important;margin-top:10px;}
+#profilePage .avatar-info .handle,#profile2Page .avatar-info .handle,#profile3Page .avatar-info .handle{color:#d2d2dc !important;font-size:16px !important;margin-top:6px;}
+#profilePage *,#profile2Page *,#profile3Page *,#profilePage *::before,#profile2Page *::before,#profile3Page *::before,#profilePage *::after,#profile2Page *::after,#profile3Page *::after{text-shadow:none;}
+#profilePage .avatar-info h1,#profile2Page .avatar-info h1,#profile3Page .avatar-info h1{text-shadow:0 2px 10px rgba(0,0,0,.7) !important;}
+#profilePage .avatar-circle,#profile2Page .avatar-circle,#profile3Page .avatar-circle,#profilePage .stat-card,#profile2Page .stat-card,#profile3Page .stat-card,#profilePage .stat-card:hover,#profile2Page .stat-card:hover,#profile3Page .stat-card:hover,#profilePage .stat-card .sicon,#profile2Page .stat-card .sicon,#profile3Page .stat-card .sicon,#profilePage .ra-cube,#profile2Page .ra-cube,#profile3Page .ra-cube,#profilePage .ra-cube:hover,#profile2Page .ra-cube:hover,#profile3Page .ra-cube:hover,#profilePage .rank-badge,#profile2Page .rank-badge,#profile3Page .rank-badge,#profilePage .panel-box,#profile2Page .panel-box,#profile3Page .panel-box,#profilePage .nx-act,#profile2Page .nx-act,#profile3Page .nx-act,#profilePage .nx-act:hover,#profile2Page .nx-act:hover,#profile3Page .nx-act:hover,#profilePage .edit-profile-btn,#profile2Page .edit-profile-btn,#profile3Page .edit-profile-btn{box-shadow:none !important;}
+#profilePage .rank-medal,#profile2Page .rank-medal,#profile3Page .rank-medal,#profilePage .nx-act svg,#profile2Page .nx-act svg,#profile3Page .nx-act svg,#profilePage .ra-cube,#profile2Page .ra-cube,#profile3Page .ra-cube,#profilePage .ra-click-w,#profile2Page .ra-click-w,#profile3Page .ra-click-w{filter:none !important;}
+#profilePage .stat-card .sicon,#profile2Page .stat-card .sicon,#profile3Page .stat-card .sicon{animation:none !important;}
+#profilePage .hud-card,#profile2Page .hud-card,#profile3Page .hud-card,#profilePage .nx-split,#profile2Page .nx-split,#profile3Page .nx-split,#profilePage .pn-ring,#profile2Page .pn-ring,#profile3Page .pn-ring,#profilePage .pn-sp,#profile2Page .pn-sp,#profile3Page .pn-sp,#profilePage .cover-edit-btn.__none,#profile2Page .cover-edit-btn.__none,#profile3Page .cover-edit-btn.__none,#profilePage .ra-cube::before,#profile2Page .ra-cube::before,#profile3Page .ra-cube::before,#profilePage .ra-cube::after,#profile2Page .ra-cube::after,#profile3Page .ra-cube::after{display:none !important;}
+#profilePage .pn-wrap,#profile2Page .pn-wrap,#profile3Page .pn-wrap{filter:none !important;}
+#profilePage .pn-btn,#profile2Page .pn-btn,#profile3Page .pn-btn{animation:none !important;}
+#profilePage .stat-card,#profile2Page .stat-card,#profile3Page .stat-card,#profilePage .ra-cube,#profile2Page .ra-cube,#profile3Page .ra-cube{border-radius:10px;clip-path:none !important;}
+#profilePage .stat-card.coins,#profile2Page .stat-card.coins,#profile3Page .stat-card.coins{border-color:rgba(255,138,30,.3) !important;}
+#profilePage .stat-card.wins,#profile2Page .stat-card.wins,#profile3Page .stat-card.wins{border-color:rgba(57,255,136,.3) !important;}
+#profilePage .stat-card.digs,#profile2Page .stat-card.digs,#profile3Page .stat-card.digs{border-color:rgba(0,240,255,.3) !important;}
+#profilePage .ra-cube,#profile2Page .ra-cube,#profile3Page .ra-cube{border-color:rgba(var(--c),.3) !important;background:linear-gradient(160deg,rgba(var(--c),.10),rgba(14,14,22,.95) 70%) !important;}
+#profilePage .ra-cube.won,#profile2Page .ra-cube.won,#profile3Page .ra-cube.won,#profilePage .ra-cube.lost,#profile2Page .ra-cube.lost,#profile3Page .ra-cube.lost{}
 </style>
 <script>
 /* Dig Solo / Race Arena mode-select screen: show the Public Listing owners (switch ON) above the two cards */
