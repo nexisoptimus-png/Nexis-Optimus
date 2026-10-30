@@ -2077,7 +2077,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
 @media (prefers-reduced-motion:reduce){#gtLang .hero-tag,#gtLang .hero-tag::before{animation:none!important;}}
 
 /* license footer: always visible at the bottom of every intro page, never over the buttons */
-#gate .gt-foot{bottom:12px!important;letter-spacing:.3px!important;font-size:12px!important;line-height:1.5;padding:0 18px;pointer-events:none;}
+#gate .gt-foot{bottom:0!important;letter-spacing:.3px!important;font-size:12px!important;line-height:1.5;padding:18px 18px 12px;pointer-events:none;background:linear-gradient(0deg,rgba(10,10,15,.92) 55%,rgba(10,10,15,0));}
 #gate .gt-foot .cp{color:#a0a0a8;letter-spacing:1px;}
 #gate .gt-foot .cp b{color:#e4e4e8;font-weight:600;}
 #gate .gt-foot .lic{max-width:min(1200px,96vw);margin:5px auto 0;font-size:11px;line-height:1.55;color:#85858d;}
@@ -2144,7 +2144,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
         <div class="gt-cta"><span class="nx-cta-wrap"><button type="button" class="obtn obtn-primary btn-charm nx-cta" id="gtSelectBtn">Get Started <svg viewBox="0 0 24 24"><path d="M7 17L17 7M8 7h9v9"/></svg></button></span><a class="rq-lnk" id="nxHow" role="button" tabindex="0">See how it works <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
       </div>
     </div>
-    <div class="gt-foot"><div class="cp">© 2026 <b>Pixel Forge Game Studios</b>. All rights reserved.</div><div class="lic">Nexis™, Nexis Optimus™, the Nexis logo and all game artwork, characters, audio, text, software and related content are the exclusive intellectual property of Pixel Forge Game Studios. The game is provided under a limited, revocable, non-exclusive, non-transferable license for personal, non-commercial entertainment use only — it is licensed, not sold. Virtual coins have no cash value and cannot be exchanged for real money. You may not copy, reproduce, modify, reverse-engineer, sell, sublicense or distribute any part of this site or game without prior written permission from Pixel Forge Game Studios. All other trademarks and names are the property of their respective owners.</div></div>
+    <div class="gt-foot"><div class="cp">© 2026 <b>Pixel Forge Game Studios</b>. All rights reserved.</div><div class="lic">Nexis™ and all game content are the property of Pixel Forge Game Studios. Licensed for personal, non-commercial use only. Virtual coins have no cash value.</div></div>
 
     <div class="gt-panel" id="gtPanel" role="dialog" aria-modal="true" aria-labelledby="gtPanelTitle" aria-hidden="true">
       <div class="gt-panel-inner">
@@ -9197,11 +9197,19 @@ body.nxv-lock{overflow:hidden!important;}
 </style>
 <style id="nx-wipe-css">
 /* intro scene -> main page: left-to-right WIPE (replaces the old fade-out) with a glowing edge */
-#gate.gone{opacity:1!important;visibility:visible!important;transition:none!important;animation:nxWipeClip .85s cubic-bezier(.65,0,.25,1) forwards;}
+#gate.gone{opacity:1!important;visibility:visible!important;transition:none!important;transform-origin:50% 50%;animation:nxVortex 1.1s cubic-bezier(.55,0,.2,1) forwards;}
 #gate.launch.gone::after{content:'';position:absolute;top:0;bottom:0;left:0;right:auto;width:6px;height:auto;transform:none;opacity:1!important;
   background:linear-gradient(180deg,#ff3355,#ff8a1e,#ffd9b0,#ff8a1e,#ff3355);box-shadow:0 0 26px 8px rgba(255,138,30,.75),0 0 90px 30px rgba(255,90,50,.35);
   animation:nxWipeBar .85s cubic-bezier(.65,0,.25,1) forwards!important;}
-@keyframes nxWipeClip{from{clip-path:inset(0 0 0 0);}to{clip-path:inset(0 0 0 100%);}}
+/* VORTEX: the intro scene spins and gets sucked into the centre; a glowing swirl ring rides its edge */
+@keyframes nxVortex{from{clip-path:circle(70vmax at 50% 50%);transform:rotate(0deg);}to{clip-path:circle(0vmax at 50% 50%);transform:rotate(540deg);}}
+#gate.launch.gone::after{display:none!important;}
+html:has(#gate.gone)::after{content:'';position:fixed;left:50%;top:50%;width:140vmax;height:140vmax;margin:-70vmax 0 0 -70vmax;border-radius:50%;z-index:10000;pointer-events:none;
+  background:repeating-conic-gradient(from 0deg,rgba(255,51,85,0) 0deg,rgba(255,138,30,.95) 20deg,rgba(255,217,176,1) 28deg,rgba(255,51,85,0) 45deg);
+  -webkit-mask:radial-gradient(closest-side,transparent 70%,#000 88%,transparent 100%);mask:radial-gradient(closest-side,transparent 70%,#000 88%,transparent 100%);
+  animation:nxVortexRing 1.1s cubic-bezier(.55,0,.2,1) forwards;}
+@keyframes nxVortexRing{from{transform:scale(1) rotate(0deg);opacity:1;}85%{opacity:1;}to{transform:scale(0) rotate(-720deg);opacity:0;}}
+@media (prefers-reduced-motion:reduce){html:has(#gate.gone)::after{display:none;}}
 @keyframes nxWipeBar{from{left:0;}to{left:100%;}}
 @media (prefers-reduced-motion:reduce){#gate.gone{animation-duration:.01s;}#gate.launch.gone::after{display:none;}}
 </style>
