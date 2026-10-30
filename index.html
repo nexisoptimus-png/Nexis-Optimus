@@ -4338,11 +4338,11 @@ function spReqRefresh(force){
   if(!spIsOwner()){ spSetBadge(0); return; }
   if(!force && Date.now()-_spLastPoll<10000) return;
   _spLastPoll=Date.now();
-  try{ google.script.run.withSuccessHandler(function(r){ spSetBadge(r&&r.count); }).withFailureHandler(function(e){ try{ console.warn('nxGetCodeRequests failed:',e); }catch(_){} }).nxGetCodeRequests(); }catch(e){}
+  try{ google.script.run.withSuccessHandler(function(r){ spSetBadge(r&&r.count); }).withFailureHandler(function(e){ try{ console.warn('nxGetCodeRequests failed:',e); }catch(_){} }).nxGetCodeRequests((typeof cu!=='undefined'&&cu)?cu.username:''); }catch(e){}
 }
 function spClearReq(){
   spSetBadge(0);
-  if(glHasGAS()){ try{ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){}).nxClearCodeRequests(); }catch(e){} }
+  if(glHasGAS()){ try{ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){}).nxClearCodeRequests((typeof cu!=='undefined'&&cu)?cu.username:''); }catch(e){} }
   else { try{ var _l=JSON.parse(localStorage.getItem('nx_verify_req')||'[]')||[]; _l.forEach(function(x){ x.seen=true; }); localStorage.setItem('nx_verify_req',JSON.stringify(_l)); }catch(e){} }
 }
 setInterval(function(){ spReqRefresh(false); },4000);
@@ -4359,7 +4359,7 @@ function spFmtWhen(t){
 }
 function spGetReqItems(cb){
   if(glHasGAS()){
-    try{ google.script.run.withSuccessHandler(function(r){ cb((r&&r.items)||[]); }).withFailureHandler(function(e){ try{ console.warn('nxGetCodeRequests failed:',e); }catch(_){} cb([]); }).nxGetCodeRequests(); }catch(e){ cb([]); }
+    try{ google.script.run.withSuccessHandler(function(r){ cb((r&&r.items)||[]); }).withFailureHandler(function(e){ try{ console.warn('nxGetCodeRequests failed:',e); }catch(_){} cb([]); }).nxGetCodeRequests((typeof cu!=='undefined'&&cu)?cu.username:''); }catch(e){ cb([]); }
   } else {
     var l=[]; try{ l=JSON.parse(localStorage.getItem('nx_verify_req')||'[]')||[]; }catch(e){} cb(l);
   }
@@ -4459,7 +4459,7 @@ function spProfConfirm(){
     setTimeout(function(){ spProfClose(); spLoadReqFeed(); },1500);
   };
   if(glHasGAS()){
-    try{ google.script.run.withSuccessHandler(ok).withFailureHandler(function(e){ try{ console.warn('nxConfirmCodeRequest failed:',e); }catch(_){} b.classList.remove('busy'); t.textContent='TRY AGAIN'; }).nxConfirmCodeRequest(it.u); }
+    try{ google.script.run.withSuccessHandler(ok).withFailureHandler(function(e){ try{ console.warn('nxConfirmCodeRequest failed:',e); }catch(_){} b.classList.remove('busy'); t.textContent='TRY AGAIN'; }).nxConfirmCodeRequest(it.u,(typeof cu!=='undefined'&&cu)?cu.username:''); }
     catch(e){ b.classList.remove('busy'); t.textContent='TRY AGAIN'; }
   } else {
     try{ var l=JSON.parse(localStorage.getItem('nx_verify_req')||'[]')||[]; l.forEach(function(x){ if(x.u===it.u){ x.confirmed=true; x.seen=true; } }); localStorage.setItem('nx_verify_req',JSON.stringify(l)); }catch(e){}
@@ -4475,12 +4475,26 @@ function spBackHome(){
   try{ if(typeof piLoad==='function') piLoad(); }catch(e){}
   try{ if(typeof rcxFill==='function') rcxFill(); }catch(e){}
 }
+/* owner already approved this account (e.g. on another browser/device): mark it verified and open the location form - only a different account needs a fresh approval */
+function spCheckApproved_(){
+  var who=(typeof cu!=='undefined'&&cu)?cu.username:''; if(!who||typeof nxMyCodeEvents!=='function') return;
+  nxMyCodeEvents(function(ev){
+    try{
+      if(typeof cu==='undefined'||!cu||cu.username!==who) return;
+      var ok=(ev||[]).some(function(e){ return e&&e.tag==='CONFIRMED'; });
+      if(!ok) return;
+      var k=spGotKey_(); if(k) localStorage.setItem(k,String(Date.now()));
+      var pg=document.getElementById('startPage');
+      if(pg&&pg.style.display==='block'){ spReset(); glOpenForm(); }
+    }catch(e){}
+  });
+}
 function showStartPage(){
   if(!cu){ requireAuth('race'); return; }
   /* code already requested once for this account: open the Add Goods Location form instead of asking for the code again */
   if(spGot_()){ glOpenForm(); return; }
   hideAllPages();
-  document.getElementById('startPage').style.display='block'; spReset();
+  document.getElementById('startPage').style.display='block'; spReset(); spCheckApproved_();
   setNavUser();
   window.scrollTo(0,0);
 }
