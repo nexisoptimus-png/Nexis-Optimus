@@ -1345,6 +1345,11 @@ html.gt-lock,html.gt-lock body{overflow:hidden;}
 .gl-btn:hover{border-color:var(--neon-cyan);color:var(--neon-cyan);}
 .gl-btn.sum{border-color:rgba(57,255,136,.6);color:var(--neon-green);}
 .gl-locbox{padding:12px 14px;margin-bottom:18px;background:var(--bg-2);border:1px solid var(--border);color:var(--text-dim);font-size:14px;}
+.gl-sv{display:none;margin:-8px 0 18px;border:1px solid rgba(57,255,136,.5);border-radius:10px;overflow:hidden;background:#000;}
+.gl-sv.on{display:block;}
+.gl-sv iframe{display:block;width:100%;height:260px;border:0;}
+.gl-sv a{display:block;padding:8px 12px;text-align:center;font-size:12px;font-weight:700;letter-spacing:.5px;color:#00f0ff;text-decoration:none;background:#0a0a0b;}
+.gl-sv a:hover{text-decoration:underline;}
 .gl-locbox.ok{color:var(--neon-green);border-color:rgba(57,255,136,.5);}
 .gl-file{display:block;width:100%;padding:12px;margin-bottom:8px;background:var(--bg-2);border:1px dashed var(--border);color:var(--text-dim);font-size:13px;font-family:inherit;}
 .gl-prev{display:flex;gap:10px;margin-bottom:12px;}
@@ -3729,6 +3734,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
     <label class="dt-lbl">Current location</label>
     <span class="nx-cta-wrap px-w" style="width:100%;margin-bottom:10px;"><button type="button" class="px-btn" id="glLocBtn" onclick="glGetLoc()">Get Current Location</button></span>
     <div class="gl-locbox" id="glLocTxt">Location not captured yet</div>
+    <div class="gl-sv" id="glSv"><iframe id="glSvFrame" title="Street View" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe><a id="glSvLink" target="_blank" rel="noopener">🧭 Open in Google Street View ↗</a></div>
     <label class="dt-lbl">Photos — select 2 images together</label>
     <input class="gl-file" type="file" id="glPhotos" accept="image/*" multiple onchange="glPickPhotos()">
     <div class="gl-prev" id="glPrev"></div>
@@ -5548,13 +5554,24 @@ function glCopyFallback(u){
 function glOpenForm(){
   _gl.lat=_gl.lng=_gl.acc=null; _gl.photos=[]; _gl.voice=null;
   document.getElementById('glLocTxt').textContent='Location not captured yet';
-  document.getElementById('glLocTxt').className='gl-locbox';
+  document.getElementById('glLocTxt').className='gl-locbox'; glHideSV();
   document.getElementById('glPhotos').value=''; document.getElementById('glPrev').innerHTML='';
   document.getElementById('glVoice').value=''; document.getElementById('glVoiceTxt').textContent='Keep it short — 30–60 seconds is plenty.';
   document.getElementById('glNote').value=''; document.getElementById('glErr').textContent='';
   var sb=document.getElementById('glSaveBtn'); sb.disabled=false; sb.textContent='Save Entry';
   window._glPaused=false; openOverlay('glOverlay');
   try{ glAcceptCheck(); if(_glAcT) clearInterval(_glAcT); _glAcT=setInterval(glAcceptCheck,6000); }catch(e){}
+}
+function glShowSV(lat,lng){
+  var w=document.getElementById('glSv'); if(!w) return;
+  var la=(+lat).toFixed(6), ln=(+lng).toFixed(6);
+  document.getElementById('glSvFrame').src='https://maps.google.com/maps?layer=c&cbll='+la+','+ln+'&cbp=12,0,0,0,0&output=svembed';
+  document.getElementById('glSvLink').href='https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='+la+','+ln;
+  w.classList.add('on');
+}
+function glHideSV(){
+  var w=document.getElementById('glSv'); if(!w) return;
+  w.classList.remove('on'); var f=document.getElementById('glSvFrame'); if(f) f.removeAttribute('src');
 }
 function glGetLoc(){
   var box=document.getElementById('glLocTxt'), btn=document.getElementById('glLocBtn');
@@ -5564,9 +5581,10 @@ function glGetLoc(){
     _gl.lat=p.coords.latitude; _gl.lng=p.coords.longitude; _gl.acc=p.coords.accuracy;
     box.className='gl-locbox ok';
     box.textContent='Captured: '+_gl.lat.toFixed(5)+', '+_gl.lng.toFixed(5)+(_gl.acc?'  (±'+Math.round(_gl.acc)+' m)':'');
+    glShowSV(_gl.lat,_gl.lng);
     btn.disabled=false;
   }, function(err){
-    box.className='gl-locbox';
+    box.className='gl-locbox'; glHideSV();
     box.textContent = err && err.code===1 ? 'Location permission denied. Allow location and try again.' : 'Could not get your location. Try again.';
     btn.disabled=false;
   }, { enableHighAccuracy:true, timeout:20000, maximumAge:0 });
@@ -9629,20 +9647,33 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 .dc-m small.ok{color:#39ff88;}.dc-m small.bad{color:#ff4d6a;}
 .dc-m small a{color:#00f0ff;cursor:pointer;text-decoration:underline;}
 .dc-in{display:flex;gap:8px;padding:12px;border-top:1px solid #26262a;}
-.dc-in input{flex:1;background:#0a0a0b;border:1px solid #26262a;color:#fff;border-radius:10px;padding:10px 12px;font:inherit;}
-.dc-in button{background:var(--neon-orange,#ff7a14);color:#000;border:0;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;}
+.dc-in input{flex:1;min-width:0;background:#0a0a0b;border:1px solid #26262a;color:#fff;border-radius:10px;padding:10px 12px;font:inherit;}
+.dc-in button{flex:none;background:var(--neon-orange,#ff7a14);color:#000;border:0;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;}
 .dc-formhost{flex:1;overflow:auto;padding:6px 10px 14px;}
 #dcFormHost .panel{position:static!important;transform:none!important;width:100%!important;max-width:none!important;max-height:none!important;margin:0!important;border:0!important;box-shadow:none!important;background:transparent!important;animation:none!important;}
 #dcFormHost .close-x{display:none!important;}
 .dc-x{position:absolute;top:10px;right:12px;z-index:3;width:34px;height:34px;border-radius:50%;border:1px solid #26262a;background:#111;color:#fff;font-size:16px;cursor:pointer;}
 @media (max-width:760px){.dc-box{grid-template-columns:1fr;grid-template-rows:42% 58%;}.dc-pane+.dc-pane{border-left:0;border-top:1px solid #26262a;}}
+.dc-in{position:relative;align-items:center;gap:4px;}
+.dc-in .dc-tool{background:transparent!important;flex:none;width:38px;height:38px;padding:0;border-radius:50%;background:transparent;color:#cfd8ee;font-size:20px;line-height:1;border:0;cursor:pointer;font-family:system-ui,'Segoe UI Emoji',sans-serif;}
+.dc-in .dc-tool:hover{background:rgba(255,255,255,.1);transform:scale(1.1);}
+.dc-in .dc-tool.rec{width:auto;min-width:56px;padding:0 12px;border-radius:19px;background:#ff3355;color:#fff;font-size:13px;font-weight:700;}
+.dc-emo{position:absolute;left:8px;bottom:calc(100% + 8px);width:min(330px,92%);display:grid;grid-template-columns:repeat(8,1fr);gap:2px;padding:10px;max-height:210px;overflow-y:auto;background:#12182a;border:1px solid #26262a;border-radius:14px;z-index:5;}
+.dc-emo[hidden]{display:none;}
+.dc-emo span{display:flex;align-items:center;justify-content:center;height:34px;font-size:22px;border-radius:8px;cursor:pointer;user-select:none;}
+.dc-emo span:hover{background:rgba(255,255,255,.1);}
+.dc-pic{display:block;width:230px;max-width:100%;border-radius:10px;}
+.dc-aud{display:block;width:230px;max-width:100%;height:38px;}
+.dc-loc{color:#00f0ff;text-decoration:none;font-weight:700;}
+#dcStatus{font-size:12px;color:#ffb14a;padding:0 14px 6px;min-height:0;}
 </style>
 <div id="dcOverlay"><div class="dc-box">
   <button type="button" class="dc-x" onclick="dcClose()" aria-label="Close">✕</button>
   <section class="dc-pane">
     <div class="dc-hd"><div class="dc-av" id="dcAv">O</div><div><b id="dcPeer">Finding your owner…</b><small>Owner chat</small></div></div>
     <div id="dcMsgs"></div>
-    <div class="dc-in"><input id="dcInp" maxlength="500" placeholder="Message the owner…" autocomplete="off"><button type="button" id="dcSend">Send</button></div>
+    <div id="dcStatus"></div>
+    <div class="dc-in"><div class="dc-emo" id="dcEmo" hidden></div><button type="button" class="dc-tool" id="dcEmoBtn" title="Emoji" aria-label="Emoji">😊</button><button type="button" class="dc-tool" id="dcImgBtn" title="Photo" aria-label="Photo">🖼️</button><button type="button" class="dc-tool" id="dcMicBtn" title="Voice message" aria-label="Voice message">🎤</button><button type="button" class="dc-tool" id="dcLocBtn" title="Send my current location" aria-label="Send location">📍</button><input id="dcImgIn" type="file" accept="image/*" hidden><input id="dcInp" maxlength="500" placeholder="Message the owner…" autocomplete="off"><button type="button" id="dcSend">Send</button></div>
   </section>
   <section class="dc-pane"><div class="dc-formhost" id="dcFormHost"></div></section>
 </div></div>
@@ -9650,8 +9681,23 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 (function(){
   var $=function(i){return document.getElementById(i);}, D={peer:null,since:0,tp:null,demo:[]};
   function me(){ try{ return cu&&cu.username||''; }catch(e){ return ''; } }
+  var RX_IMG=/^data:image\/(?:jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/, RX_AUD=/^data:audio\/[a-z0-9.+-]+(?:;[a-z0-9=.\-]+)*;base64,[A-Za-z0-9+\/=]+$/i, RX_LOC=/^(-?\d{1,3}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/;
+  function rich(d,t){
+    var e;
+    if(t.indexOf('[img]')===0&&RX_IMG.test(t.slice(5))){ e=document.createElement('img'); e.className='dc-pic'; e.alt='photo'; e.src=t.slice(5); d.appendChild(e); return; }
+    if(t.indexOf('[voice]')===0&&RX_AUD.test(t.slice(7))){ e=document.createElement('audio'); e.className='dc-aud'; e.controls=true; e.preload='metadata'; e.src=t.slice(7); d.appendChild(e); return; }
+    var m=t.indexOf('[loc]')===0&&RX_LOC.exec(t.slice(5));
+    if(m){ e=document.createElement('a'); e.className='dc-loc'; e.target='_blank'; e.rel='noopener'; e.href='https://www.google.com/maps?q='+m[1]+','+m[2]; e.textContent='📍 Current location — '+(+m[1]).toFixed(5)+', '+(+m[2]).toFixed(5)+' (open map)'; d.appendChild(e); return; }
+    d.appendChild(document.createTextNode(t));
+  }
+  function note(m){ var s=$('dcStatus'); if(!s) return; s.textContent=m; setTimeout(function(){ if(s.textContent===m) s.textContent=''; },2500); }
+  function sendText(t){
+    if(!D.peer){ note('Owner not found yet'); return; }
+    if(!glHasGAS()){ D.demo.push({t:Date.now(),from:me(),text:t}); return poll(); }
+    glCall('chatSend',[me(),D.peer,t]).then(poll).catch(function(e){ add('✗ '+e.message,true); });
+  }
   function add(text,mine,status){
-    var d=document.createElement('div'); d.className='dc-m'+(mine?' me':''); d.appendChild(document.createTextNode(text));
+    var d=document.createElement('div'); d.className='dc-m'+(mine?' me':''); rich(d,text);
     var st=null; if(status){ st=document.createElement('small'); st.textContent=status; d.appendChild(st); }
     $('dcMsgs').appendChild(d); $('dcMsgs').scrollTop=$('dcMsgs').scrollHeight; return {box:d,st:st};
   }
@@ -9685,7 +9731,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
   }
   function resetForm(){
     _gl.lat=_gl.lng=_gl.acc=null; _gl.photos=[]; _gl.voice=null;
-    $('glLocTxt').textContent='Location not captured yet'; $('glLocTxt').className='gl-locbox';
+    $('glLocTxt').textContent='Location not captured yet'; $('glLocTxt').className='gl-locbox'; glHideSV();
     $('glPhotos').value=''; $('glPrev').innerHTML=''; $('glVoice').value=''; $('glVoiceTxt').textContent='Keep it short — 30–60 seconds is plenty.';
     $('glNote').value=''; var b=$('glSaveBtn'); b.disabled=false; b.textContent='Save Entry';
   }
@@ -9724,8 +9770,68 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
   };
   window.dcClose=function(){
     var pn=document.querySelector('#dcFormHost > .panel'); if(pn) $('glOverlay').appendChild(pn);
-    $('glSaveBtn').setAttribute('onclick','glSave()'); $('dcOverlay').classList.remove('open'); document.body.style.overflow=''; clearInterval(D.tp);
+    $('glSaveBtn').setAttribute('onclick','glSave()'); if(rec) stopRec(false); emo.hidden=true; $('dcOverlay').classList.remove('open'); document.body.style.overflow=''; clearInterval(D.tp);
   };
+  var EMO='😀 😁 😂 🤣 😊 😍 😘 😎 🤩 🥳 😇 🙂 😉 😅 😭 😢 😡 🤔 🙄 😴 👍 👎 👌 🙏 👏 💪 🤝 👋 ✅ ❌ ⚠️ ⏳ 📍 📦 🧾 🎁 💰 💎 ⛏️ 🔥 ⭐ 🎉 ❤️ 💙 💯 🚀 📸 🎤'.split(' '), emo=$('dcEmo');
+  emo.innerHTML=EMO.map(function(e){return '<span role="button" tabindex="0" data-e="'+e+'">'+e+'</span>';}).join('');
+  $('dcEmoBtn').addEventListener('click',function(ev){ ev.stopPropagation(); emo.hidden=!emo.hidden; });
+  emo.addEventListener('click',function(ev){
+    ev.stopPropagation(); var b=ev.target.closest('[data-e]'); if(!b) return;
+    var i=$('dcInp'), a=i.selectionStart==null?i.value.length:i.selectionStart, z=i.selectionEnd==null?a:i.selectionEnd, e=b.getAttribute('data-e');
+    i.value=i.value.slice(0,a)+e+i.value.slice(z); i.focus(); var q=a+e.length; try{i.setSelectionRange(q,q);}catch(_){}
+  });
+  document.addEventListener('click',function(ev){ if(!emo.hidden&&!ev.target.closest('#dcEmo')) emo.hidden=true; });
+  /* photo */
+  $('dcImgBtn').addEventListener('click',function(){ $('dcImgIn').click(); });
+  $('dcImgIn').addEventListener('change',function(){
+    var f=this.files&&this.files[0]; this.value=''; if(!f) return;
+    var img=new Image(), url=URL.createObjectURL(f);
+    img.onload=function(){
+      var sc=Math.min(1,520/Math.max(img.width,img.height)), q=.7, d='', cv=document.createElement('canvas');
+      for(var k=0;k<8;k++){
+        cv.width=Math.max(1,Math.round(img.width*sc)); cv.height=Math.max(1,Math.round(img.height*sc));
+        cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+        d=cv.toDataURL('image/jpeg',q); if(d.length<=42000) break; sc*=.8; q=Math.max(.4,q-.05);
+      }
+      URL.revokeObjectURL(url);
+      if(d.length>42000){ note('Image too large'); return; }
+      sendText('[img]'+d);
+    };
+    img.onerror=function(){ URL.revokeObjectURL(url); note('Cannot read image'); };
+    img.src=url;
+  });
+  /* voice (max 12 s) */
+  var rec=null,chunks=[],tmr=null,mic=$('dcMicBtn');
+  function stopRec(ok){ if(rec){ rec._ok=ok; try{rec.stop();}catch(_){} } }
+  mic.addEventListener('click',function(){
+    if(rec){ stopRec(true); return; }
+    if(!navigator.mediaDevices||!window.MediaRecorder){ note('Voice not supported here'); return; }
+    navigator.mediaDevices.getUserMedia({audio:true}).then(function(st){
+      var mt=['audio/webm;codecs=opus','audio/mp4','audio/webm'].filter(function(x){return MediaRecorder.isTypeSupported(x);})[0];
+      var op={audioBitsPerSecond:16000}; if(mt) op.mimeType=mt;
+      var r=new MediaRecorder(st,op); rec=r; chunks=[];
+      r.ondataavailable=function(e){ if(e.data&&e.data.size) chunks.push(e.data); };
+      r.onstop=function(){
+        st.getTracks().forEach(function(t){t.stop();}); clearInterval(tmr);
+        mic.classList.remove('rec'); mic.textContent='🎤'; var ok=r._ok; rec=null;
+        if(!ok||!chunks.length) return;
+        var fr=new FileReader();
+        fr.onload=function(){ var d=String(fr.result); if(d.length>46000){ note('Voice too long'); return; } sendText('[voice]'+d); };
+        fr.readAsDataURL(new Blob(chunks,{type:r.mimeType||mt||'audio/webm'}));
+      };
+      r.start(); var t0=Date.now(); mic.classList.add('rec'); mic.textContent='0:00';
+      tmr=setInterval(function(){ var s2=Math.floor((Date.now()-t0)/1000); mic.textContent='0:'+(s2<10?'0':'')+s2; if(s2>=12) stopRec(true); },250);
+    }).catch(function(){ note('Microphone blocked'); });
+  });
+  /* current location */
+  $('dcLocBtn').addEventListener('click',function(){
+    if(!navigator.geolocation){ note('Location not supported here'); return; }
+    var b=this; b.disabled=true; note('Getting location…');
+    navigator.geolocation.getCurrentPosition(function(pos){
+      b.disabled=false; sendText('[loc]'+pos.coords.latitude.toFixed(6)+','+pos.coords.longitude.toFixed(6)); note('Location sent ✓');
+    },function(){ b.disabled=false; note('Location blocked or unavailable'); },{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+  });
+  window.dcClose0=window.dcClose;
   $('dcSend').onclick=send; $('dcInp').onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); send(); } };
   document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&$('dcOverlay').classList.contains('open')) dcClose(); });
 })();
