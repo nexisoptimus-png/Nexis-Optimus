@@ -9602,10 +9602,7 @@ nav .brand:hover::before,.rq-gnav .brand:hover::before,.gpage-logo:hover::before
 (function(){
   var b=document.getElementById('rcRiderBtn'); if(!b) return;
   b.addEventListener('click',function(){
-    window.nxRaceChat=true;
-    var root=document.getElementById('pcRoot'), box=document.getElementById('pcBox'), fab=document.getElementById('pcFab');
-    if(root) root.hidden=false;
-    if(box&&fab&&box.hidden) fab.click();
+    if(typeof dcOpen==='function') dcOpen();
   });
 })();
 </script>
@@ -9616,5 +9613,122 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
   if(src){var c=src.cloneNode(true);c.innerHTML=c.innerHTML.replace(/rqP/g,'rqP_rp'+i);h.insertBefore(c,h.firstChild);}
 });
 })();</script>
+<style id="dcCss">
+#dcOverlay{position:fixed;inset:0;z-index:2147483100;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.78);}
+#dcOverlay.open{display:flex;}
+.dc-box{position:relative;width:min(1040px,100%);height:min(700px,calc(100vh - 28px));display:grid;grid-template-columns:1fr 1fr;border:1px solid #26262a;border-radius:18px;overflow:hidden;background:#0c0c0d;}
+.dc-pane{display:flex;flex-direction:column;min-width:0;min-height:0;}
+.dc-pane+.dc-pane{border-left:1px solid #26262a;}
+.dc-hd{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #26262a;}
+.dc-av{width:38px;height:38px;border-radius:50%;background:var(--neon-orange,#ff7a14);color:#000;display:grid;place-items:center;font-weight:800;}
+.dc-hd b{display:block;font-size:15px;color:#fff;}.dc-hd small{color:#39ff88;font-size:12px;}
+#dcMsgs{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.dc-m{max-width:82%;padding:9px 13px;border-radius:14px;background:#18181b;color:#f4f4f5;font-size:14px;line-height:1.45;word-break:break-word;}
+.dc-m.me{align-self:flex-end;background:#2b1707;border:1px solid rgba(255,122,20,.35);}
+.dc-m small{display:block;font-size:11px;color:#a1a1aa;margin-top:3px;}
+.dc-m small.ok{color:#39ff88;}.dc-m small.bad{color:#ff4d6a;}
+.dc-m small a{color:#00f0ff;cursor:pointer;text-decoration:underline;}
+.dc-in{display:flex;gap:8px;padding:12px;border-top:1px solid #26262a;}
+.dc-in input{flex:1;background:#0a0a0b;border:1px solid #26262a;color:#fff;border-radius:10px;padding:10px 12px;font:inherit;}
+.dc-in button{background:var(--neon-orange,#ff7a14);color:#000;border:0;border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer;}
+.dc-formhost{flex:1;overflow:auto;padding:6px 10px 14px;}
+#dcFormHost .panel{position:static!important;transform:none!important;width:100%!important;max-width:none!important;max-height:none!important;margin:0!important;border:0!important;box-shadow:none!important;background:transparent!important;animation:none!important;}
+#dcFormHost .close-x{display:none!important;}
+.dc-x{position:absolute;top:10px;right:12px;z-index:3;width:34px;height:34px;border-radius:50%;border:1px solid #26262a;background:#111;color:#fff;font-size:16px;cursor:pointer;}
+@media (max-width:760px){.dc-box{grid-template-columns:1fr;grid-template-rows:42% 58%;}.dc-pane+.dc-pane{border-left:0;border-top:1px solid #26262a;}}
+</style>
+<div id="dcOverlay"><div class="dc-box">
+  <button type="button" class="dc-x" onclick="dcClose()" aria-label="Close">✕</button>
+  <section class="dc-pane">
+    <div class="dc-hd"><div class="dc-av" id="dcAv">O</div><div><b id="dcPeer">Finding your owner…</b><small>Owner chat</small></div></div>
+    <div id="dcMsgs"></div>
+    <div class="dc-in"><input id="dcInp" maxlength="500" placeholder="Message the owner…" autocomplete="off"><button type="button" id="dcSend">Send</button></div>
+  </section>
+  <section class="dc-pane"><div class="dc-formhost" id="dcFormHost"></div></section>
+</div></div>
+<script id="dcJs">
+(function(){
+  var $=function(i){return document.getElementById(i);}, D={peer:null,since:0,tp:null,demo:[]};
+  function me(){ try{ return cu&&cu.username||''; }catch(e){ return ''; } }
+  function add(text,mine,status){
+    var d=document.createElement('div'); d.className='dc-m'+(mine?' me':''); d.appendChild(document.createTextNode(text));
+    var st=null; if(status){ st=document.createElement('small'); st.textContent=status; d.appendChild(st); }
+    $('dcMsgs').appendChild(d); $('dcMsgs').scrollTop=$('dcMsgs').scrollHeight; return {box:d,st:st};
+  }
+  function setSt(m,txt,cls){ if(!m.st) return; m.st.className=cls||''; m.st.textContent=txt; }
+  function poll(){
+    var p=D.peer; if(!p) return;
+    var go=function(r){
+      if(D.peer!==p||!r||!r.msgs) return;
+      r.msgs.forEach(function(m){ if(m.t<=D.since) return; D.since=m.t;
+        var x=add(String(m.text==null?'':m.text),m.from===me()); var t=document.createElement('small'); t.textContent=new Date(m.t).toTimeString().slice(0,5); x.box.appendChild(t); });
+    };
+    if(!glHasGAS()) return go({msgs:D.demo});
+    glCall('chatThread',[me(),p,D.since]).then(go).catch(function(){});
+  }
+  function pick(list){
+    var o=(list||[]).filter(function(x){return x.role==='owner';});
+    if(cu&&cu.city){ var m=o.filter(function(x){return String(x.city||'').toLowerCase()===String(cu.city).toLowerCase();}); if(m.length) o=m; }
+    if(!o.length){ $('dcPeer').textContent='No owner found for your city yet'; return; }
+    D.peer=o[0].u; $('dcPeer').textContent='Owner — '+(o[0].city||(cu&&cu.city)||o[0].u); $('dcAv').textContent=String(o[0].u).charAt(0).toUpperCase();
+    poll(); clearInterval(D.tp); D.tp=setInterval(poll,5000);
+  }
+  function chatInit(){
+    $('dcMsgs').innerHTML=''; D.peer=null; D.since=0; clearInterval(D.tp); $('dcPeer').textContent='Finding your owner…';
+    if(!glHasGAS()) return pick([{u:'kasun',role:'owner',city:'Your city'}]);
+    glCall('chatContacts',[me()]).then(function(r){ pick(r&&r.list); }).catch(function(){ $('dcPeer').textContent='Could not load your owner'; });
+  }
+  function send(){
+    var i=$('dcInp'), t=i.value.trim(); if(!t||!D.peer) return; i.value='';
+    if(!glHasGAS()){ D.demo.push({t:Date.now(),from:me(),text:t}); return poll(); }
+    glCall('chatSend',[me(),D.peer,t]).then(poll).catch(function(e){ add('✗ '+e.message,true); });
+  }
+  function resetForm(){
+    _gl.lat=_gl.lng=_gl.acc=null; _gl.photos=[]; _gl.voice=null;
+    $('glLocTxt').textContent='Location not captured yet'; $('glLocTxt').className='gl-locbox';
+    $('glPhotos').value=''; $('glPrev').innerHTML=''; $('glVoice').value=''; $('glVoiceTxt').textContent='Keep it short — 30–60 seconds is plenty.';
+    $('glNote').value=''; var b=$('glSaveBtn'); b.disabled=false; b.textContent='Save Entry';
+  }
+  function run(job,msgs){
+    var u=me(), up=function(f,n){ return glCall('uploadGoodsFile',[u,f,n]); };
+    var p1=glCompress(job.photos[0],1280,.78).then(function(d){ return up(d,'photo1.jpg'); });
+    return p1.then(function(r1){
+      setSt(msgs.ph,'photo 1 ✓ · photo 2 uploading…');
+      var p2=glCompress(job.photos[1],1280,.78).then(function(d){ return up(d,'photo2.jpg'); });
+      var p3=glReadDataUrl(job.voice).then(function(d){ return up(d,job.voice.name||'voice.m4a'); });
+      p2.then(function(){ setSt(msgs.ph,'✓ uploaded','ok'); }); p3.then(function(){ setSt(msgs.vo,'✓ uploaded','ok'); });
+      return Promise.all([p2,p3]).then(function(r){ return glCall('saveGoodsEntry',[u,{lat:job.lat,lng:job.lng,note:job.note,photo1Url:r1.url,photo2Url:r[0].url,voiceUrl:r[1].url}]); });
+    }).then(function(saved){
+      setSt(msgs.loc,'✓ saved to sheet','ok'); glCountBump(saved&&saved.count!=null?saved.count:null);
+    }).catch(function(e){
+      [msgs.loc,msgs.ph,msgs.vo].forEach(function(m){ if(m.st&&m.st.className!=='ok') setSt(m,'✗ '+((e&&e.message)||'failed'),'bad'); });
+      var a=document.createElement('a'); a.textContent=' Retry'; a.onclick=function(){ a.remove(); [msgs.loc,msgs.ph,msgs.vo].forEach(function(m){ setSt(m,'retrying…'); }); run(job,msgs); }; msgs.loc.st.appendChild(a);
+    });
+  }
+  function save(){
+    var err=$('glErr'); err.style.color='var(--neon-red)'; err.textContent='';
+    if(_gl.lat==null){ err.textContent='Capture your current location first.'; return; }
+    if(_gl.photos.length!==2){ err.textContent='Select exactly 2 photos.'; return; }
+    if(!_gl.voice){ err.textContent='Add a short voice note.'; return; }
+    var job={lat:_gl.lat,lng:_gl.lng,note:$('glNote').value.trim(),photos:_gl.photos.slice(),voice:_gl.voice};
+    resetForm(); err.style.color='var(--neon-green)'; err.textContent='Sent ✓ — files upload in the background.';
+    var msgs={ loc:add('📍 '+job.lat.toFixed(5)+', '+job.lng.toFixed(5)+(job.note?' — '+job.note:''),true,'saving…'), ph:add('🖼 2 photos',true,'uploading…'), vo:add('🎙 Voice note',true,'uploading…') };
+    if(!glHasGAS()){ setTimeout(function(){ setSt(msgs.loc,'✓ saved (preview)','ok'); setSt(msgs.ph,'✓ uploaded','ok'); setSt(msgs.vo,'✓ uploaded','ok'); glCountBump(null); },1500); return; }
+    run(job,msgs);
+  }
+  window.dcOpen=function(){
+    if(typeof cu==='undefined'||!cu){ requireAuth('race'); return; }
+    var pn=document.querySelector('#glOverlay > .panel'); if(pn) $('dcFormHost').appendChild(pn);
+    resetForm(); $('glErr').textContent=''; $('glSaveBtn').onclick=save;
+    $('dcOverlay').classList.add('open'); document.body.style.overflow='hidden'; chatInit();
+  };
+  window.dcClose=function(){
+    var pn=document.querySelector('#dcFormHost > .panel'); if(pn) $('glOverlay').appendChild(pn);
+    $('glSaveBtn').setAttribute('onclick','glSave()'); $('dcOverlay').classList.remove('open'); document.body.style.overflow=''; clearInterval(D.tp);
+  };
+  $('dcSend').onclick=send; $('dcInp').onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); send(); } };
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&$('dcOverlay').classList.contains('open')) dcClose(); });
+})();
+</script>
 </body>
 </html>
