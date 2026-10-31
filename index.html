@@ -1221,6 +1221,16 @@ html.gt-lock,html.gt-lock body{overflow:hidden;}
 .vt-glow,.gt-orb,footer.nx-footer::before,.cover-glow{display:none!important;}
 /* ═══ DETAILS PAGE (after login, before profile) ═══ */
 #detailsPage{display:none;}
+/* ═══ ROLE PAGES (Admin / Owner / Distributor / Customer) ═══ */
+.rp-page{display:none;}
+.rp-hero{position:relative;overflow:hidden;padding-bottom:clamp(110px,20vw,230px)!important;}
+.rp-hero>*:not(.rq-map){position:relative;z-index:1;}
+.rp-h1{font-family:'Rajdhani','Inter',system-ui,sans-serif;font-weight:700;font-size:clamp(38px,8vw,96px);line-height:.98;letter-spacing:1px;text-transform:uppercase;color:#f4f4f5;background:none;-webkit-text-fill-color:#f4f4f5;}
+.rp-h1 .a{font-size:2.1em;display:inline-block;line-height:.92;color:#ff7a14;-webkit-text-fill-color:#ff7a14;text-shadow:0 0 28px rgba(255,122,20,.45);}
+.rp-btns{display:flex;flex-wrap:wrap;justify-content:center;gap:22px;margin-top:10px;}
+.rp-back{display:block;margin:26px auto 0;background:none;border:0;color:var(--text-dim);font-family:inherit;font-size:14px;cursor:pointer;letter-spacing:1px;}
+.rp-back:hover{color:#fff;}
+@media (max-width:760px){.steps-grid{grid-template-columns:1fr;}}
 .dt-wrap{min-height:calc(100vh - 80px);display:flex;align-items:center;justify-content:center;padding:40px 20px 70px;}
 .dt-card{width:100%;max-width:520px;background:var(--panel);border:1px solid var(--border);padding:clamp(26px,5vw,44px);box-shadow:0 0 60px rgba(0,0,0,.6);}
 .dt-kicker{font-family:'Inter',sans-serif;font-size:12px;letter-spacing:.4em;color:var(--neon-cyan);text-transform:uppercase;margin-bottom:10px;}
@@ -2208,9 +2218,8 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
       <div class="nx-f-col">
         <h4>Quick Links</h4>
         <a href="javascript:void(0)" onclick="goHome()">&#9656; Home</a>
-        <a href="javascript:void(0)" onclick="requireAuth('profile')">&#9656; Play Now</a>
-        <a href="javascript:void(0)" onclick="requireAuth('race')">&#9656; Join The Race</a>
-        <a href="javascript:void(0)" onclick="openOwnerReq()">&#9656; Become a City Owner</a>
+        <a href="javascript:void(0)" onclick="openRolePage('Customer')">&#9656; Play Now</a>
+        <a href="javascript:void(0)" onclick="openRolePage('Distributor')">&#9656; Join The Race</a>
         <a href="javascript:void(0)" onclick="showLbPage()">&#9656; Leaderboard</a>
       </div>
       <div class="nx-f-col"><button class="nx-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#9650; BACK TO TOP</button></div>
@@ -2232,7 +2241,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
     
     <div class="nx-skull-hero" aria-hidden="true"></div><div class="nx-welcome" aria-label="Welcome to"><b style="--i:0">W</b><b style="--i:1">E</b><b style="--i:2">L</b><b style="--i:3">C</b><b style="--i:4">O</b><b style="--i:5">M</b><b style="--i:6">E</b><b style="--i:7"> </b><b style="--i:8">T</b><b style="--i:9">O</b></div><div class="rq-h1" role="heading" aria-level="1" aria-label="Nexis Optimus"><span class="a" aria-hidden="true"><b style="--i:0">N</b><b style="--i:1">e</b><b style="--i:2">x</b><b style="--i:3">i</b><b style="--i:4">s</b></span><br><span class="w2" aria-hidden="true"><b style="--i:0">O</b><b style="--i:1">p</b><b style="--i:2">t</b><b style="--i:3">i</b><b style="--i:4">m</b><b style="--i:5">u</b><b style="--i:6">s</b></span><span class="nx-spk" aria-hidden="true"><svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><defs><path id="nxSp" d="M12 1C12.9 8 16 11.1 23 12C16 12.9 12.9 16 12 23C11.1 16 8 12.9 1 12C8 11.1 11.1 8 12 1Z"/><linearGradient id="nxSg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd2a6"/><stop offset=".5" stop-color="#ff8a1e"/><stop offset="1" stop-color="#ff4d2e"/></linearGradient></defs><g class="tw t1"><use href="#nxSp" fill="url(#nxSg)" transform="translate(2 20) scale(1.5)"/></g><g class="tw t2"><use href="#nxSp" fill="url(#nxSg)" transform="translate(34 2) scale(.85)"/></g><g class="tw t3"><use href="#nxSp" fill="url(#nxSg)" transform="translate(40 34) scale(.5)"/></g></svg></span></div>
     <p>Uncover hidden treasure on the grid, climb the leaderboard, and come back every day for more digs. Virtual coins only — no entry fees, ever.</p>
-    <span class="nx-cta-wrap nx-neon"><button class="obtn obtn-primary btn-charm nx-cta" id="heroEnterBtn" onclick="openOverlay('adminLoginOverlay')">Enter The Grid</button></span>
+    <span class="nx-cta-wrap nx-neon"><button class="obtn obtn-primary btn-charm nx-cta" id="heroEnterBtn" onclick="openRolePage('Admin')">Enter The Grid</button></span>
     <div class="stats-row">
       <div class="stat"><b>36</b><span>Tiles</span></div>
       <div class="stat"><b>1</b><span>Treasure</span></div>
@@ -2271,7 +2280,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
           <li><span>✓</span> 5 free digs every day</li>
           <li><span>✓</span> Virtual coins only, no entry fee</li>
         </ul>
-        <span class="nx-cta-wrap nx-neon"><button class="obtn obtn-primary btn-charm nx-cta" onclick="requireAuth('solo')">Join The Hunt</button></span>
+        <span class="nx-cta-wrap nx-neon"><button class="obtn obtn-primary btn-charm nx-cta" onclick="openRolePage('Owner')">Join The Hunt</button></span>
       </div>
       <div class="mini-grid" id="miniGrid"></div>
     </div>
@@ -2291,7 +2300,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
         <div class="lb-row"><span class="lb-rank">🥈</span><span class="lb-name">Adam</span><span class="lb-stats">15 wins</span></div>
         <div class="lb-row"><span class="lb-rank">🥉</span><span class="lb-name">Sedrick</span><span class="lb-stats">12 wins</span></div>
       </div>
-      <div class="lb-cta"><span class="nx-cta-wrap nx-neon"><button class="obtn obtn-primary btn-charm nx-cta" onclick="requireAuth('race')">Join The Race</button></span></div>
+      <div class="lb-cta"><span class="nx-cta-wrap nx-neon"><button class="obtn obtn-primary btn-charm nx-cta" onclick="openRolePage('Distributor')">Join The Race</button></span></div>
     </div>
   </section>
 
@@ -2299,8 +2308,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
     <div class="cta-banner">
       <h2>Ready To Dig?</h2>
       <p>Your treasure could be one tile away. Play free, right now.</p>
-      <span class="nx-cta-wrap nx-neon"><button class="obtn obtn-primary btn-charm nx-cta" onclick="requireAuth('profile')">Play Now</button></span>
-      <div class="own-strip">Want to run a whole city? <a onclick="openOwnerReq()">Become a City Owner</a></div>
+      <span class="nx-cta-wrap nx-neon"><button class="obtn obtn-primary btn-charm nx-cta" onclick="openRolePage('Customer')">Play Now</button></span>
     </div>
   </section>
 
@@ -2329,6 +2337,73 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
 </div>
 
 <!-- ═══ PROFILE PAGE ═══ -->
+<div id="rpAdmin" class="rp-page">
+  <section class="hero rp-hero">
+    <div class="hero-tag" style="color:var(--neon-orange)">Restricted Access</div>
+    <h1 class="rp-h1"><span class="a">Admin</span><br><span class="w2">Portal</span></h1>
+    <p>Control the whole grid — approve requests, watch stock and keep every city running smoothly.</p>
+    <div class="rp-btns">
+      <span class="nx-cta-wrap nx-neon"><button type="button" class="obtn obtn-primary btn-charm nx-cta" id="rpAdminLogin" onclick="rpLogin('Admin')">Login</button></span>
+    </div>
+    <button type="button" class="rp-back" onclick="goHome()">&larr; Back to Home</button>
+  </section>
+  <div class="section-divider"></div>
+  <section class="section"><div class="section-inner">
+    <div class="section-head"><div class="section-tag" style="color:var(--neon-green);border:1px solid rgba(57,255,136,0.35);">What You Get</div><h2>Your Admin Tools</h2></div>
+    <div class="steps-grid"><div class="step-card"><div class="step-num">01</div><div class="step-icon">✅</div><h3>Approve Requests</h3><p>Review and approve access requests from owners, distributors and customers.</p></div><div class="step-card"><div class="step-num">02</div><div class="step-icon">📦</div><h3>Track Stock</h3><p>See stock, slips and collections across every city in one place.</p></div><div class="step-card"><div class="step-num">03</div><div class="step-icon">💬</div><h3>Stay In Touch</h3><p>Chat with owners, distributors and customers straight from the panel.</p></div></div>
+  </div></section>
+</div>
+<div id="rpOwner" class="rp-page">
+  <section class="hero rp-hero">
+    <div class="hero-tag" style="color:var(--neon-orange)">City Owners</div>
+    <h1 class="rp-h1"><span class="a">Owner</span><br><span class="w2">Portal</span></h1>
+    <p>Run your own city — manage your distributors and keep an eye on every location.</p>
+    <div class="rp-btns">
+      <span class="nx-cta-wrap nx-neon"><button type="button" class="obtn obtn-primary btn-charm nx-cta" id="rpOwnerLogin" onclick="rpLogin('Owner')">Login</button></span>
+      <span class="nx-cta-wrap nx-neon"><button type="button" class="obtn obtn-primary btn-charm nx-cta" id="rpOwnerReq" onclick="rpRequest('Owner')">Request Access</button></span>
+    </div>
+    <button type="button" class="rp-back" onclick="goHome()">&larr; Back to Home</button>
+  </section>
+  <div class="section-divider"></div>
+  <section class="section"><div class="section-inner">
+    <div class="section-head"><div class="section-tag" style="color:var(--neon-green);border:1px solid rgba(57,255,136,0.35);">What You Get</div><h2>Your Owner Tools</h2></div>
+    <div class="steps-grid"><div class="step-card"><div class="step-num">01</div><div class="step-icon">🧑‍💼</div><h3>Manage Distributors</h3><p>Add distributors to your city and see how each one is doing.</p></div><div class="step-card"><div class="step-num">02</div><div class="step-icon">📍</div><h3>Track Locations</h3><p>Every saved goods location in your city, with its status.</p></div><div class="step-card"><div class="step-num">03</div><div class="step-icon">📊</div><h3>Watch Progress</h3><p>Collected and missing items at a glance, updated live.</p></div></div>
+  </div></section>
+</div>
+<div id="rpDistributor" class="rp-page">
+  <section class="hero rp-hero">
+    <div class="hero-tag" style="color:var(--neon-orange)">Distributors</div>
+    <h1 class="rp-h1"><span class="a">Distributor</span><br><span class="w2">Portal</span></h1>
+    <p>Save goods locations, upload slips and keep your stock moving.</p>
+    <div class="rp-btns">
+      <span class="nx-cta-wrap nx-neon"><button type="button" class="obtn obtn-primary btn-charm nx-cta" id="rpDistributorLogin" onclick="rpLogin('Distributor')">Login</button></span>
+      <span class="nx-cta-wrap nx-neon"><button type="button" class="obtn obtn-primary btn-charm nx-cta" id="rpDistributorReq" onclick="rpRequest('Distributor')">Request Access</button></span>
+    </div>
+    <button type="button" class="rp-back" onclick="goHome()">&larr; Back to Home</button>
+  </section>
+  <div class="section-divider"></div>
+  <section class="section"><div class="section-inner">
+    <div class="section-head"><div class="section-tag" style="color:var(--neon-green);border:1px solid rgba(57,255,136,0.35);">What You Get</div><h2>Your Distributor Tools</h2></div>
+    <div class="steps-grid"><div class="step-card"><div class="step-num">01</div><div class="step-icon">📍</div><h3>Save Locations</h3><p>Capture the spot with GPS, two photos and a short voice note.</p></div><div class="step-card"><div class="step-num">02</div><div class="step-icon">🧾</div><h3>Upload Slips</h3><p>Send your bank slips for quick verification.</p></div><div class="step-card"><div class="step-num">03</div><div class="step-icon">📦</div><h3>Manage Stock</h3><p>Know what is collected and what is still missing.</p></div></div>
+  </div></section>
+</div>
+<div id="rpCustomer" class="rp-page">
+  <section class="hero rp-hero">
+    <div class="hero-tag" style="color:var(--neon-orange)">Customers</div>
+    <h1 class="rp-h1"><span class="a">Customer</span><br><span class="w2">Portal</span></h1>
+    <p>Deposit, get your location and jump into the hunt — free to play.</p>
+    <div class="rp-btns">
+      <span class="nx-cta-wrap nx-neon"><button type="button" class="obtn obtn-primary btn-charm nx-cta" id="rpCustomerLogin" onclick="rpLogin('Customer')">Login</button></span>
+      <span class="nx-cta-wrap nx-neon"><button type="button" class="obtn obtn-primary btn-charm nx-cta" id="rpCustomerReq" onclick="rpRequest('Customer')">Request Access</button></span>
+    </div>
+    <button type="button" class="rp-back" onclick="goHome()">&larr; Back to Home</button>
+  </section>
+  <div class="section-divider"></div>
+  <section class="section"><div class="section-inner">
+    <div class="section-head"><div class="section-tag" style="color:var(--neon-green);border:1px solid rgba(57,255,136,0.35);">What You Get</div><h2>Your Customer Tools</h2></div>
+    <div class="steps-grid"><div class="step-card"><div class="step-num">01</div><div class="step-icon">💳</div><h3>Make A Deposit</h3><p>Deposit and upload your slip for quick approval.</p></div><div class="step-card"><div class="step-num">02</div><div class="step-icon">🗺️</div><h3>Get Your Location</h3><p>Once approved, get the exact location of your item.</p></div><div class="step-card"><div class="step-num">03</div><div class="step-icon">⛏️</div><h3>Dig & Win</h3><p>Play the daily grid, win coins and climb the leaderboard.</p></div></div>
+  </div></section>
+</div>
 <div id="detailsPage">
   <div class="dt-wrap">
     <div class="dt-card">
@@ -3972,6 +4047,24 @@ function vidThumbNext(img){
 }
 
 /* ═══ GO HOME ═══ */
+function rpLogin(role){
+  if(role==='Admin'){ openOverlay('adminLoginOverlay'); return; }
+  if(role==='Owner'){ showOwnerHome(); return; }
+  if(role==='Distributor'){ requireAuth('race'); return; }
+  if(role==='Customer'){ if(cu){ showProfile(); return; } window._pendingDest='profile'; openOverlay('authOverlay'); showLogin(); }
+}
+function rpRequest(role){
+  if(role==='Owner'){ openOwnerReq(); return; }
+  if(role==='Distributor'){ requireAuth('race'); return; }
+  if(role==='Customer'){ requireAuth('profile'); }
+}
+function openRolePage(role){
+  document.querySelectorAll('.overlay.open').forEach(function(o){ o.classList.remove('open'); });
+  hideAllPages();
+  document.getElementById('homePage').style.display='none';
+  document.getElementById('rp'+role).style.display='block';
+  window.scrollTo(0,0);
+}
 function goHome(){
   try{ outReset(); }catch(e){}
   if(document.getElementById('adminPage').style.display==='block'){ exitAdminPanel(); }
@@ -4276,7 +4369,7 @@ var _rcTimer=null;
 function rcEsc(t){ return String(t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 function hideAllPages(){
   var _f=document.getElementById('ownerFab'); if(_f) _f.hidden=!(window._isOwner&&typeof cu!=='undefined'&&cu);
-  ['homePage','detailsPage','profilePage','adminPage','hubPage','racePage','startPage','vaultPage','arenaPage','raceMapPage','profile2Page','profile3Page','activityPage','dayPage','whatPage','distPage','custPage','cityPage','cityDetPage','ownerProfPage','ownerHomePage','acctPage','stockPage'].forEach(function(id){
+  ['homePage','detailsPage','profilePage','adminPage','hubPage','racePage','startPage','vaultPage','arenaPage','raceMapPage','profile2Page','profile3Page','activityPage','dayPage','whatPage','distPage','custPage','cityPage','cityDetPage','ownerProfPage','ownerHomePage','acctPage','stockPage','rpAdmin','rpOwner','rpDistributor','rpCustomer'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.style.display='none';
   });
   if(_rcTimer){ clearInterval(_rcTimer); _rcTimer=null; }
@@ -8427,6 +8520,7 @@ function pick(){
  if(['authOverlay','accessOverlay','adminLoginOverlay','ownerReqOverlay'].some(open))return 'globe';
  if(vis('hubPage'))return 'tiles';
  if(['stockPage','distPage','custPage','acctPage'].some(vis))return 'cons';
+ if(['rpAdmin','rpOwner','rpDistributor','rpCustomer'].some(vis))return 'route';
  if(vis('homePage'))return 'route';
  return null}
 function size(){D=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*D;cv.height=H*D;x.setTransform(D,0,0,D,0,0);last='';check()}
@@ -9515,5 +9609,12 @@ nav .brand:hover::before,.rq-gnav .brand:hover::before,.gpage-logo:hover::before
   });
 })();
 </script>
+<script>(function(){
+var src=document.querySelector('#homePage .hero .rq-map'),sp=document.querySelector('#homePage .hero .nx-sparks');
+document.querySelectorAll('.rp-hero').forEach(function(h,i){
+  if(sp) h.insertBefore(sp.cloneNode(true),h.firstChild);
+  if(src){var c=src.cloneNode(true);c.innerHTML=c.innerHTML.replace(/rqP/g,'rqP_rp'+i);h.insertBefore(c,h.firstChild);}
+});
+})();</script>
 </body>
 </html>
