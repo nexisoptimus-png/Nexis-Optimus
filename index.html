@@ -5501,6 +5501,9 @@ function glCall(fn, args){
     r[fn].apply(r, args);
   });
 }
+function glCallT(fn, args, ms){
+  return Promise.race([glCall(fn,args), new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('Timed out. Check your connection and press Save Entry again — files already uploaded will not be re-sent.')); }, ms||120000); })]);
+}
 function glLoad(){
   var sec = document.getElementById('glSec'); if(!sec) return;
   if(!glHasGAS()){ sec.style.display='block'; glRender(_gl.demo); return; }
@@ -5552,7 +5555,7 @@ function glCopyFallback(u){
   document.body.appendChild(t); t.select(); try{ document.execCommand('copy'); }catch(e){} document.body.removeChild(t);
 }
 function glOpenForm(){
-  _gl.lat=_gl.lng=_gl.acc=null; _gl.photos=[]; _gl.voice=null;
+  _gl.lat=_gl.lng=_gl.acc=null; _gl.photos=[]; _gl.voice=null; _gl.up=null;
   document.getElementById('glLocTxt').textContent='Location not captured yet';
   document.getElementById('glLocTxt').className='gl-locbox'; glHideSV();
   document.getElementById('glPhotos').value=''; document.getElementById('glPrev').innerHTML='';
@@ -5591,7 +5594,7 @@ function glGetLoc(){
 }
 function glPickPhotos(){
   var f=document.getElementById('glPhotos').files, prev=document.getElementById('glPrev'), err=document.getElementById('glErr');
-  prev.innerHTML=''; _gl.photos=[]; err.textContent='';
+  prev.innerHTML=''; _gl.photos=[]; _gl.up=null; err.textContent='';
   if(f.length!==2){ if(f.length){ err.style.color='var(--neon-red)'; err.textContent='Select exactly 2 images together.'; } return; }
   for(var i=0;i<2;i++){
     _gl.photos.push(f[i]);
@@ -5602,8 +5605,8 @@ function glPickVoice(){
   var f=document.getElementById('glVoice').files[0], t=document.getElementById('glVoiceTxt');
   _gl.voice=null;
   if(!f){ return; }
-  if(f.size > 9*1024*1024){ t.textContent='File too large (max 9 MB). Please record a shorter note.'; document.getElementById('glVoice').value=''; return; }
-  _gl.voice=f; t.textContent='Selected: '+f.name+' ('+(f.size/1024/1024).toFixed(1)+' MB)';
+  if(f.size > 4*1024*1024){ t.textContent='File too large ('+(f.size/1024/1024).toFixed(1)+' MB). Max 4 MB — record a shorter note (30–60 seconds).'; document.getElementById('glVoice').value=''; return; }
+  _gl.up=null; _gl.voice=f; t.textContent='Selected: '+f.name+' ('+(f.size/1024/1024).toFixed(1)+' MB)';
 }
 function glReadDataUrl(file){
   return new Promise(function(res, rej){
@@ -5640,17 +5643,19 @@ async function glSave(){
       _gl.demo.unshift({ row:_gl.demo.length+2, ts:d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes()),
         lat:_gl.lat, lng:_gl.lng, mapLink:'https://www.google.com/maps?q='+_gl.lat+','+_gl.lng, note:note, p1:'', p2:'', voice:'', summary:'#' });
     } else {
-      err.textContent='Preparing photos…';
-      var d1=await glCompress(_gl.photos[0],1280,.78), d2=await glCompress(_gl.photos[1],1280,.78);
-      err.textContent='Uploading photo 1 of 2…';
-      var u1=await glCall('uploadGoodsFile',[cu.username,d1,'photo1.jpg']);
-      err.textContent='Uploading photo 2 of 2…';
-      var u2=await glCall('uploadGoodsFile',[cu.username,d2,'photo2.jpg']);
-      err.textContent='Uploading voice note…';
-      var dv=await glReadDataUrl(_gl.voice);
-      var u3=await glCall('uploadGoodsFile',[cu.username,dv,_gl.voice.name||'voice.m4a']);
+      var up=_gl.up||(_gl.up={});
+      if(!up.u1){
+        err.textContent='Uploading photo 1 of 2…';
+        var d1=await glCompress(_gl.photos[0],1280,.78);
+        up.u1=(await glCallT('uploadGoodsFile',[cu.username,d1,'photo1.jpg'])).url;   /* first: creates the distributor's Drive folder */
+      }
+      var jobs=[];
+      if(!up.u2) jobs.push(glCompress(_gl.photos[1],1280,.78).then(function(d){ return glCallT('uploadGoodsFile',[cu.username,d,'photo2.jpg']); }).then(function(r){ up.u2=r.url; }));
+      if(!up.u3) jobs.push(glReadDataUrl(_gl.voice).then(function(d){ return glCallT('uploadGoodsFile',[cu.username,d,_gl.voice.name||'voice.m4a'],180000); }).then(function(r){ up.u3=r.url; }));
+      if(jobs.length){ err.textContent='Uploading photo 2 and voice note…'; await Promise.all(jobs); }
       err.textContent='Saving…';
-      saved = await glCall('saveGoodsEntry',[cu.username,{ lat:_gl.lat, lng:_gl.lng, note:note, photo1Url:u1.url, photo2Url:u2.url, voiceUrl:u3.url }]);
+      saved = await glCallT('saveGoodsEntry',[cu.username,{ lat:_gl.lat, lng:_gl.lng, note:note, photo1Url:up.u1, photo2Url:up.u2, voiceUrl:up.u3 }],60000);
+      _gl.up=null;
     }
     var sum = (typeof saved!=='undefined' && saved && saved.summary) ? saved.summary : '';
     err.style.color='var(--neon-green)';
@@ -9730,7 +9735,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     glCall('chatSend',[me(),D.peer,t]).then(poll).catch(function(e){ add('✗ '+e.message,true); });
   }
   function resetForm(){
-    _gl.lat=_gl.lng=_gl.acc=null; _gl.photos=[]; _gl.voice=null;
+    _gl.lat=_gl.lng=_gl.acc=null; _gl.photos=[]; _gl.voice=null; _gl.up=null;
     $('glLocTxt').textContent='Location not captured yet'; $('glLocTxt').className='gl-locbox'; glHideSV();
     $('glPhotos').value=''; $('glPrev').innerHTML=''; $('glVoice').value=''; $('glVoiceTxt').textContent='Keep it short — 30–60 seconds is plenty.';
     $('glNote').value=''; var b=$('glSaveBtn'); b.disabled=false; b.textContent='Save Entry';
