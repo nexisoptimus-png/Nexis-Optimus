@@ -7717,6 +7717,7 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
 #mvBox .mv-row{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:14px;width:calc(100% - 64px);}
 #mvBox .mv-b{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:200px;padding:22px 10px;border:0;border-radius:14px;background:#ff7a14;color:#fff;cursor:pointer;font-family:inherit;transition:transform .15s,box-shadow .15s;}
 #mvBox .mv-b:hover{transform:translateY(-3px);box-shadow:0 12px 34px rgba(255,122,20,.45);}
+#mvBox .mv-b:disabled{opacity:.38;filter:grayscale(.55);cursor:not-allowed;}#mvBox .mv-b:disabled:hover{transform:none;box-shadow:none;}
 #mvBox .mv-ic{font-size:52px;line-height:1;}#mvBox .mv-n{font-size:26px;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;}#mvBox .mv-s{font-size:14px;font-weight:700;opacity:.95;}
 #mvBox .mv-vs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;width:50px;height:50px;display:grid;place-items:center;background:#0b0d14;color:#fff;font-size:16px;font-weight:900;clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%);}
 @media (max-width:760px){#mvBox{height:auto;padding:64px 0 24px;}#mvBox .mv-row{grid-template-columns:1fr;}#mvBox .mv-b{min-height:150px;}}
@@ -7725,8 +7726,8 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
 <div id="mvBox" hidden>
 <button type="button" class="mv-x" id="mvX" aria-label="Close">✕</button>
 <div class="mv-row"><div class="mv-vs">VS</div>
-<button type="button" class="mv-b" onclick="mvClose();showArenaPage()"><span class="mv-ic">⛏️</span><span class="mv-n">Dig Solo</span><span class="mv-s">Hunt the hidden treasure</span></button>
-<button type="button" class="mv-b" onclick="mvClose();openSlipPage()"><span class="mv-ic">🏁</span><span class="mv-n">Race Arena</span><span class="mv-s">Climb the leaderboard</span></button>
+<button type="button" class="mv-b" disabled aria-disabled="true"><span class="mv-ic">⛏️</span><span class="mv-n">Dig Solo</span><span class="mv-s">Hunt the hidden treasure</span></button>
+<button type="button" class="mv-b" onclick="mvClose();dcOpen('slip')"><span class="mv-ic">🏁</span><span class="mv-n">Race Arena</span><span class="mv-s">Climb the leaderboard</span></button>
 </div></div>
 <div id="pcBox" hidden>
 <div class="pc-scene" id="pcScene"><div class="pc-prof"><span class="pc-star"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.4l5.9-.8z"/></svg></span><div class="pc-ht"><div class="pc-brand"><span>NE</span>XIS <em>OWNER</em></div><b>COMMS CONSOLE</b><i class="pc-bar"></i></div></div><div class="pc-pill"><span title="Online"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><circle cx="12" cy="12" r="8.5"/></svg><em id="pcSOn">0</em></span><span title="Unread"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M4 7.5l8 6 8-6"/></svg><em id="pcSUn">0</em></span><span title="Players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><path d="M16 5.6a3.2 3.2 0 0 1 0 5.8M18 14.4c1.8.6 2.9 2.2 3.2 4.6"/></svg><em id="pcSAll">0</em></span></div><div class="pc-mid"><div class="pc-menu"><button type="button" class="pc-role" data-r="owner" style="--rc:#ff8a1e"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8"/><path d="M10 20v-4h4v4"/></svg></span><small>OWNERS</small></button><button type="button" class="pc-role" data-r="distributor" style="--rc:#b84dff"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3z"/><path d="M14 9h4l3 3v4h-7z"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span><small>DISTRIBUTORS</small></button><button type="button" class="pc-role" data-r="customer" style="--rc:#00f0ff"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/></svg></span><small>CUSTOMERS</small></button></div><div class="pc-robot" id="pcRobot"></div></div><div class="pc-cards"><div class="pc-card"><small>ONLINE NOW</small><b id="pcC1">0 of 0 players</b><i><u id="pcBar2"></u></i></div><div class="pc-card"><small>UNREAD</small><b id="pcC2">0 messages waiting</b></div></div></div><div class="pc-side">
@@ -9745,6 +9746,8 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 .dc-aud{display:block;width:230px;max-width:100%;height:38px;}
 .dc-loc{color:#00f0ff;text-decoration:none;font-weight:700;}
 #dcStatus{font-size:12px;color:#ffb14a;padding:0 14px 6px;min-height:0;}
+#dcFormHost.slip{position:relative;padding:0!important;overflow:hidden!important;}
+#dcFormHost.slip iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:transparent;}
 </style>
 <div id="dcOverlay"><div class="dc-box">
   <button type="button" class="dc-x" onclick="dcClose()" aria-label="Close">✕</button>
@@ -9925,13 +9928,23 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     if(!glHasGAS()){ setTimeout(function(){ setSt(msgs.loc,'✓ saved (preview)','ok'); setSt(msgs.ph,'✓ uploaded','ok'); setSt(msgs.vo,'✓ uploaded','ok'); glCountBump(null); setTimeout(function(){ finishEntry(msgs,job,''); },700); },1500); return; }
     run(job,msgs);
   }
-  window.dcOpen=function(){
+  function dcSlipMount(){
+    var m=(cu&&cu.mobile)?String(cu.mobile).replace(/\D/g,''):'';
+    var fh=$('dcFormHost'); fh.classList.add('slip'); window._dcSlip=true;
+    var css='<style>header.top,.hero,#rules,.scan{display:none!important}.arena{padding-top:14px!important}</style>';
+    var fr=document.createElement('iframe');
+    fr.srcdoc=NX_SLIP_HTML.replace("window.google = { script: { get run()","window.google = parent.google; window.__mock = { script: { get run()").replace("String('' || '')","String('"+m+"' || '')").replace('</head>',css+'</head>');
+    fh.appendChild(fr);
+  }
+  var _csp=window.closeSlipPreview; window.closeSlipPreview=function(){ if(_csp) _csp(); if(window._dcSlip) window.dcClose(); };
+  window.dcOpen=function(mode){
     if(typeof cu==='undefined'||!cu){ requireAuth('race'); return; }
-    var pn=document.querySelector('#glOverlay > .panel'); if(pn) $('dcFormHost').appendChild(pn);
+    if(mode==='slip'){ dcSlipMount(); } else { var pn=document.querySelector('#glOverlay > .panel'); if(pn) $('dcFormHost').appendChild(pn); }
     resetForm(); $('glErr').textContent=''; $('glSaveBtn').onclick=save;
     $('dcOverlay').classList.add('open'); document.body.style.overflow='hidden'; chatInit();
   };
   window.dcClose=function(){
+    if(window._dcSlip){ window._dcSlip=false; var fh0=$('dcFormHost'); fh0.classList.remove('slip'); var fr0=fh0.querySelector('iframe'); if(fr0) fr0.remove(); }
     var pn=document.querySelector('#dcFormHost > .panel'); if(pn) $('glOverlay').appendChild(pn);
     $('glSaveBtn').setAttribute('onclick','glSave()'); if(rec) stopRec(false); emo.hidden=true; $('dcOverlay').classList.remove('open'); document.body.style.overflow=''; clearInterval(D.tp);
   };
