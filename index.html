@@ -7708,18 +7708,18 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
 #pcFab #pcBadge{top:2px!important;right:6px!important;z-index:2;}
 </style>
 <style id="mvCss">
-/* Robot click -> big centered window (same shell as old comms console) with only Dig Solo / Race Arena cards */
+/* Robot click -> copy of the comms-console window shell (same size/look), only Dig Solo / Race Arena inside */
 #pcBox,#pcBadge{display:none!important;}
-#mvBox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147482999;width:min(1296px,calc(100vw - 24px));height:min(800px,calc(100vh - 110px));display:flex;align-items:center;justify-content:center;border:1px solid #26262e;border-radius:24px;background:linear-gradient(160deg,#10121a 0%,#0a0b10 100%);box-shadow:0 0 0 1px rgba(255,122,20,.12),0 24px 80px rgba(0,0,0,.75);font-family:'Inter',system-ui,sans-serif;color:#fff;overflow:hidden;}
+#mvBox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147482999;width:min(1040px,calc(100vw - 24px));height:min(660px,calc(100vh - 90px));display:flex;align-items:center;justify-content:center;background:radial-gradient(at 50% 0%,rgba(255,138,30,.08),transparent 60%),linear-gradient(160deg,#12121c,#0a0a0f);border:1px solid rgba(255,255,255,.22);border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.7);overflow:hidden;font-family:'Inter',system-ui,sans-serif;color:#e8ecff;}
 #mvBox[hidden]{display:none!important;}
-#mvBox .mv-x{position:absolute;top:26px;right:26px;width:44px;height:44px;border-radius:50%;border:1px solid #2c3040;background:#0d0f16;color:#fff;font-size:20px;line-height:1;cursor:pointer;z-index:3;}
-#mvBox .mv-x:hover{border-color:#ff7a14;}
-#mvBox .mv-row{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:16px;width:min(980px,calc(100% - 48px));}
-#mvBox .mv-b{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:250px;padding:28px 12px;border:0;border-radius:14px;background:#ff7a14;color:#fff;cursor:pointer;font-family:inherit;transition:transform .15s,box-shadow .15s;}
+#mvBox .mv-x{position:absolute;top:18px;right:18px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:#0d0f16;color:#fff;font-size:17px;line-height:1;cursor:pointer;z-index:3;}
+#mvBox .mv-x:hover{border-color:#ff8a1e;}
+#mvBox .mv-row{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:14px;width:calc(100% - 64px);}
+#mvBox .mv-b{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:200px;padding:22px 10px;border:0;border-radius:14px;background:#ff7a14;color:#fff;cursor:pointer;font-family:inherit;transition:transform .15s,box-shadow .15s;}
 #mvBox .mv-b:hover{transform:translateY(-3px);box-shadow:0 12px 34px rgba(255,122,20,.45);}
-#mvBox .mv-ic{font-size:64px;line-height:1;}#mvBox .mv-n{font-size:30px;font-weight:900;letter-spacing:3px;text-transform:uppercase;}#mvBox .mv-s{font-size:16px;font-weight:700;opacity:.95;}
-#mvBox .mv-vs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;width:58px;height:58px;display:grid;place-items:center;background:#0b0d14;color:#fff;font-size:18px;font-weight:900;clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%);}
-@media (max-width:760px){#mvBox{height:auto;min-height:60vh;padding:70px 0 30px;}#mvBox .mv-row{grid-template-columns:1fr;}#mvBox .mv-b{min-height:170px;}}
+#mvBox .mv-ic{font-size:52px;line-height:1;}#mvBox .mv-n{font-size:26px;font-weight:900;letter-spacing:2.5px;text-transform:uppercase;}#mvBox .mv-s{font-size:14px;font-weight:700;opacity:.95;}
+#mvBox .mv-vs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;width:50px;height:50px;display:grid;place-items:center;background:#0b0d14;color:#fff;font-size:16px;font-weight:900;clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%);}
+@media (max-width:760px){#mvBox{height:auto;padding:64px 0 24px;}#mvBox .mv-row{grid-template-columns:1fr;}#mvBox .mv-b{min-height:150px;}}
 </style>
 <div id="pcRoot" hidden><button id="pcFab" type="button" aria-label="Chat">💬</button>
 <div id="mvBox" hidden>
