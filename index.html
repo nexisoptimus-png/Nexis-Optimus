@@ -7708,31 +7708,26 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
 #pcFab #pcBadge{top:2px!important;right:6px!important;z-index:2;}
 </style>
 <style id="mvCss">
-/* Robot click -> Mission Select chat box (old comms console hidden) */
+/* Robot click -> big centered window (same shell as old comms console) with only Dig Solo / Race Arena cards */
 #pcBox,#pcBadge{display:none!important;}
-#mvBox{position:fixed;right:18px;bottom:122px;z-index:2147482999;width:min(430px,calc(100vw - 24px));border:1px solid rgba(255,122,20,.55);border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#10131c,#090b11);box-shadow:0 18px 50px rgba(0,0,0,.65),0 0 0 1px rgba(0,240,255,.12),0 0 30px rgba(255,122,20,.18);font-family:'Inter',sans-serif;color:#fff;}
+#mvBox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147482999;width:min(1296px,calc(100vw - 24px));height:min(800px,calc(100vh - 110px));display:flex;align-items:center;justify-content:center;border:1px solid #26262e;border-radius:24px;background:linear-gradient(160deg,#10121a 0%,#0a0b10 100%);box-shadow:0 0 0 1px rgba(255,122,20,.12),0 24px 80px rgba(0,0,0,.75);font-family:'Inter',system-ui,sans-serif;color:#fff;overflow:hidden;}
 #mvBox[hidden]{display:none!important;}
-#mvBox .mv-h{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #23262f;background:rgba(255,255,255,.03);}
-#mvBox .mv-h i{width:9px;height:9px;border-radius:50%;background:#39ff88;box-shadow:0 0 10px #39ff88;}
-#mvBox .mv-h b{flex:1;font-size:12px;letter-spacing:3px;color:#27e0ff;}
-#mvBox .mv-x{width:30px;height:30px;border-radius:50%;border:1px solid #2c3040;background:#0d0f16;color:#fff;font-size:15px;cursor:pointer;}
-#mvBox .mv-body{padding:18px 16px 20px;text-align:center;}
-#mvBox .mv-tag{display:inline-block;padding:6px 14px;border:1px solid #2c3040;border-radius:20px;font-size:12px;letter-spacing:1px;background:#0d0f16;}
-#mvBox .mv-t{margin:12px 0 16px;font-size:30px;font-weight:900;font-style:italic;color:#ffb066;letter-spacing:.5px;}
-#mvBox .mv-row{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-#mvBox .mv-b{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 8px;border:0;border-radius:10px;background:#ff7a14;color:#fff;cursor:pointer;font-family:inherit;transition:transform .15s,box-shadow .15s;}
-#mvBox .mv-b:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(255,122,20,.45);}
-#mvBox .mv-ic{font-size:34px;line-height:1;}#mvBox .mv-n{font-size:17px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;}#mvBox .mv-s{font-size:11.5px;font-weight:600;opacity:.95;}
-#mvBox .mv-vs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;width:36px;height:36px;display:grid;place-items:center;background:#0b0d14;color:#fff;font-size:12px;font-weight:900;clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%);}
+#mvBox .mv-x{position:absolute;top:26px;right:26px;width:44px;height:44px;border-radius:50%;border:1px solid #2c3040;background:#0d0f16;color:#fff;font-size:20px;line-height:1;cursor:pointer;z-index:3;}
+#mvBox .mv-x:hover{border-color:#ff7a14;}
+#mvBox .mv-row{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:16px;width:min(980px,calc(100% - 48px));}
+#mvBox .mv-b{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:250px;padding:28px 12px;border:0;border-radius:14px;background:#ff7a14;color:#fff;cursor:pointer;font-family:inherit;transition:transform .15s,box-shadow .15s;}
+#mvBox .mv-b:hover{transform:translateY(-3px);box-shadow:0 12px 34px rgba(255,122,20,.45);}
+#mvBox .mv-ic{font-size:64px;line-height:1;}#mvBox .mv-n{font-size:30px;font-weight:900;letter-spacing:3px;text-transform:uppercase;}#mvBox .mv-s{font-size:16px;font-weight:700;opacity:.95;}
+#mvBox .mv-vs{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;width:58px;height:58px;display:grid;place-items:center;background:#0b0d14;color:#fff;font-size:18px;font-weight:900;clip-path:polygon(25% 5%,75% 5%,100% 50%,75% 95%,25% 95%,0 50%);}
+@media (max-width:760px){#mvBox{height:auto;min-height:60vh;padding:70px 0 30px;}#mvBox .mv-row{grid-template-columns:1fr;}#mvBox .mv-b{min-height:170px;}}
 </style>
 <div id="pcRoot" hidden><button id="pcFab" type="button" aria-label="Chat">💬</button>
 <div id="mvBox" hidden>
-<div class="mv-h"><i></i><b>MISSION SELECT</b><button type="button" class="mv-x" id="mvX" aria-label="Close">✕</button></div>
-<div class="mv-body"><div class="mv-tag">CHOOSE YOUR PATH</div><div class="mv-t">READY PLAYER?</div>
+<button type="button" class="mv-x" id="mvX" aria-label="Close">✕</button>
 <div class="mv-row"><div class="mv-vs">VS</div>
 <button type="button" class="mv-b" onclick="mvClose();showArenaPage()"><span class="mv-ic">⛏️</span><span class="mv-n">Dig Solo</span><span class="mv-s">Hunt the hidden treasure</span></button>
 <button type="button" class="mv-b" onclick="mvClose();openSlipPage()"><span class="mv-ic">🏁</span><span class="mv-n">Race Arena</span><span class="mv-s">Climb the leaderboard</span></button>
-</div></div></div>
+</div></div>
 <div id="pcBox" hidden>
 <div class="pc-scene" id="pcScene"><div class="pc-prof"><span class="pc-star"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.4l5.9-.8z"/></svg></span><div class="pc-ht"><div class="pc-brand"><span>NE</span>XIS <em>OWNER</em></div><b>COMMS CONSOLE</b><i class="pc-bar"></i></div></div><div class="pc-pill"><span title="Online"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><circle cx="12" cy="12" r="8.5"/></svg><em id="pcSOn">0</em></span><span title="Unread"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2.5"/><path d="M4 7.5l8 6 8-6"/></svg><em id="pcSUn">0</em></span><span title="Players"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><path d="M16 5.6a3.2 3.2 0 0 1 0 5.8M18 14.4c1.8.6 2.9 2.2 3.2 4.6"/></svg><em id="pcSAll">0</em></span></div><div class="pc-mid"><div class="pc-menu"><button type="button" class="pc-role" data-r="owner" style="--rc:#ff8a1e"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8"/><path d="M10 20v-4h4v4"/></svg></span><small>OWNERS</small></button><button type="button" class="pc-role" data-r="distributor" style="--rc:#b84dff"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3z"/><path d="M14 9h4l3 3v4h-7z"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span><small>DISTRIBUTORS</small></button><button type="button" class="pc-role" data-r="customer" style="--rc:#00f0ff"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-4 3.7-6 7.5-6s6.7 2 7.5 6"/></svg></span><small>CUSTOMERS</small></button></div><div class="pc-robot" id="pcRobot"></div></div><div class="pc-cards"><div class="pc-card"><small>ONLINE NOW</small><b id="pcC1">0 of 0 players</b><i><u id="pcBar2"></u></i></div><div class="pc-card"><small>UNREAD</small><b id="pcC2">0 messages waiting</b></div></div></div><div class="pc-side">
 <div class="pc-h"><button id="pcBack" type="button" hidden>&larr;</button><span class="pc-star"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.4l5.9-.8z"/></svg></span><div class="pc-ht"><div class="pc-brand"><span>NE</span>XIS <em>OWNER</em></div><b id="pcTitle">COMMS CONSOLE</b><i class="pc-bar"></i></div><button id="pcX" type="button">&times;</button></div>
