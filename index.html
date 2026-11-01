@@ -7633,6 +7633,8 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
   box-shadow:inset 0 0 0 2px #ff8a1e,0 0 14px rgba(255,138,30,.4);}
 .pc-star svg{width:24px;height:24px;stroke:#ff8a1e;filter:drop-shadow(0 0 4px rgba(255,138,30,.6));}
 .pc-ht{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
+#pcBox .pc-star{border:0!important;background:var(--pc-skull,none) center/contain no-repeat!important;box-shadow:none!important;border-radius:0!important;width:42px!important;height:48px!important;filter:drop-shadow(0 0 7px rgba(255,122,20,.5));animation:nxSkFloat 3.2s ease-in-out infinite;}
+#pcBox .pc-star svg{display:none!important;}
 .pc-brand{font-family:'Inter',sans-serif;font-weight:900;font-size:20px;letter-spacing:2px;color:#fff;line-height:1.1;}
 .pc-brand span{color:#ff8a1e;}
 .pc-brand em{font-style:normal;font-size:.55em;letter-spacing:2px;color:rgba(238,242,251,.75);font-weight:700;margin-left:4px;}
@@ -7766,6 +7768,17 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
   var LAB={owner:'Owners',distributor:'Distributors',customer:'Customers',admin:'Admin'}, EMO='😀 😂 😊 😍 😎 🥳 😢 😡 🤔 👍 🙏 👏 🔥 ❤️ ✅ 🎉'.split(' ');
   var S={role:'owner',on:false,list:[],peer:null,since:0,tl:null,tp:null,unread:{}}, $=function(i){return document.getElementById(i);};
   function me(){ try{ return (cu&&cu.username)||''; }catch(e){ return ''; } }
+  function isOwnerU(){ try{ return !!(cu&&(String(cu.role||'').toLowerCase()==='owner'||window._isOwner===true)); }catch(e){ return false; } }
+  function RK(){ return isOwnerU()?['admin','distributor','customer']:['owner','distributor','customer']; }
+  var ADM_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.2c0 4.6-3.1 8.2-7.5 9.8-4.4-1.6-7.5-5.2-7.5-9.8V6z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/></svg>';
+  function fixConsole(){
+    var bx=$('pcBox'); if(!bx) return;
+    if(!bx.style.getPropertyValue('--pc-skull')){ var sk=document.querySelector('.nx-skull-hero'); if(sk){ var bg=getComputedStyle(sk).backgroundImage; if(bg&&bg!=='none') bx.style.setProperty('--pc-skull',bg); } }
+    var b=document.querySelector('#pcScene .pc-role[data-r="owner"],#pcScene .pc-role[data-r="admin"]'); if(!b) return;
+    if(!b._o) b._o=b.innerHTML;
+    if(isOwnerU()){ if(b.getAttribute('data-r')!=='admin'){ b.setAttribute('data-r','admin'); b.innerHTML='<span>'+ADM_ICON+'</span><small>ADMIN</small>'; } if(S.role==='owner') S.role='admin'; }
+    else { if(b.getAttribute('data-r')!=='owner'){ b.setAttribute('data-r','owner'); b.innerHTML=b._o; } if(S.role==='admin') S.role='owner'; }
+  }
   function gas(){ return typeof glHasGAS==='function'&&glHasGAS(); }
   /* preview (no server): demo contacts + local messages */
   var DM={}, DC=[{u:'admin',role:'admin',on:true},{u:'kasun',role:'owner',on:true},{u:'nimali',role:'owner',on:false},{u:'ruwan',role:'distributor',on:true},{u:'saman',role:'distributor',on:false},{u:'customer0001',role:'customer',on:true}];
@@ -7781,8 +7794,9 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
     if(typeof r[fn]==='function') r[fn].apply(r,args); else { S.err=fn+' is missing on the server. Paste the new Chat.gs and deploy a new version.'; if(!$('pcBox').hidden&&!$('pcList').hidden) rows(); }
   }
   function rows(){
+    fixConsole();
     var L=S.list, h='';
-    ['owner','distributor','customer'].forEach(function(r){ var t=L.filter(function(x){return x.role===r;}), o=t.filter(function(x){return x.on;}).length, un=0; t.forEach(function(x){ un+=S.unread[x.u]||0; }); h+='<button type="button" class="pc-chip pc-tab'+(S.role===r?' on':'')+'" data-r="'+r+'"><span class="pc-tl">'+LAB[r].toUpperCase()+'</span><span class="pc-tn"><i></i>'+o+' / '+t.length+'</span>'+(un?'<b class="pc-tb">'+un+'</b>':'')+'</button>'; });
+    RK().forEach(function(r){ var t=L.filter(function(x){return x.role===r;}), o=t.filter(function(x){return x.on;}).length, un=0; t.forEach(function(x){ un+=S.unread[x.u]||0; }); h+='<button type="button" class="pc-chip pc-tab'+(S.role===r?' on':'')+'" data-r="'+r+'"><span class="pc-tl">'+LAB[r].toUpperCase()+'</span><span class="pc-tn"><i></i>'+o+' / '+t.length+'</span>'+(un?'<b class="pc-tb">'+un+'</b>':'')+'</button>'; });
     $('pcChips').innerHTML=h;
     $('pcOn').className='pc-flt'+(S.on?' on':'');
     var qs=($('pcQ').value||'').toLowerCase().trim();
