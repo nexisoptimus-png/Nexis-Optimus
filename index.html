@@ -9668,6 +9668,15 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 .dc-emo span{display:flex;align-items:center;justify-content:center;height:34px;font-size:22px;border-radius:8px;cursor:pointer;user-select:none;}
 .dc-emo span:hover{background:rgba(255,255,255,.1);}
 .dc-pic{display:block;width:230px;max-width:100%;border-radius:10px;}
+.dc-thumbs{display:flex;gap:8px;flex-wrap:wrap;}
+.dc-thumbs a{display:block;}
+.dc-thumb{display:block;width:118px;height:118px;object-fit:cover;border-radius:10px;border:1px solid #26262a;}
+.dc-lbl{font-size:12px;color:#a1a1aa;margin-bottom:6px;font-weight:700;letter-spacing:.3px;}
+.dc-note{margin-top:6px;white-space:pre-wrap;}
+.dc-rowlink{color:#00f0ff;font-weight:700;text-decoration:none;}
+.dc-m small a.dc-del{color:#ff6b81;margin-left:10px;text-decoration:none;cursor:pointer;}
+.dc-m small a.dc-del:hover{text-decoration:underline;}
+.dc-rowlink:hover{text-decoration:underline;}
 .dc-aud{display:block;width:230px;max-width:100%;height:38px;}
 .dc-loc{color:#00f0ff;text-decoration:none;font-weight:700;}
 #dcStatus{font-size:12px;color:#ffb14a;padding:0 14px 6px;min-height:0;}
@@ -9701,18 +9710,55 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     if(!glHasGAS()){ D.demo.push({t:Date.now(),from:me(),text:t}); return poll(); }
     glCall('chatSend',[me(),D.peer,t]).then(poll).catch(function(e){ add('✗ '+e.message,true); });
   }
+  function addNode(build,mine,status){
+    var d=document.createElement('div'); d.className='dc-m'+(mine?' me':''); build(d);
+    var st=null; if(status){ st=document.createElement('small'); st.textContent=status; d.appendChild(st); }
+    $('dcMsgs').appendChild(d); $('dcMsgs').scrollTop=$('dcMsgs').scrollHeight; return {box:d,st:st};
+  }
+  function el(tag,cls,txt){ var e=document.createElement(tag); if(cls) e.className=cls; if(txt!=null) e.textContent=txt; return e; }
+  /* preview cards for a saved goods entry: location + note, 2 photos, voice note, then the row link */
+  function locCard(job){ return function(d){
+    var a=el('a','dc-loc','📍 '+job.lat.toFixed(5)+', '+job.lng.toFixed(5)+' (open map)');
+    a.target='_blank'; a.rel='noopener'; a.href='https://www.google.com/maps?q='+job.lat+','+job.lng; d.appendChild(a);
+    if(job.note) d.appendChild(el('div','dc-note','📝 '+job.note));
+  }; }
+  function photoCard(job){ return function(d){
+    d.appendChild(el('div','dc-lbl','🖼 2 photos'));
+    var w=el('div','dc-thumbs');
+    job.photos.forEach(function(f){
+      var u=URL.createObjectURL(f), a=el('a'); a.href=u; a.target='_blank'; a.rel='noopener';
+      var im=el('img','dc-thumb'); im.src=u; im.alt='photo'; a.appendChild(im); w.appendChild(a);
+    });
+    d.appendChild(w);
+  }; }
+  function voiceCard(job){ return function(d){
+    d.appendChild(el('div','dc-lbl','🎙 Voice note'));
+    var au=el('audio','dc-aud'); au.controls=true; au.preload='metadata'; au.src=URL.createObjectURL(job.voice); d.appendChild(au);
+  }; }
+  function rowCard(url){ return function(d){
+    d.appendChild(el('div','dc-lbl','🔗 Row link'));
+    var a=el('a','dc-rowlink','Open summary page ↗'); a.href=url; a.target='_blank'; a.rel='noopener'; d.appendChild(a);
+    d.appendChild(el('div','dc-note',url));
+  }; }
+  function showRow(url){ url=String(url||''); if(/^https:\/\//.test(url)) addNode(rowCard(url),true); }
   function add(text,mine,status){
     var d=document.createElement('div'); d.className='dc-m'+(mine?' me':''); rich(d,text);
     var st=null; if(status){ st=document.createElement('small'); st.textContent=status; d.appendChild(st); }
     $('dcMsgs').appendChild(d); $('dcMsgs').scrollTop=$('dcMsgs').scrollHeight; return {box:d,st:st};
   }
   function setSt(m,txt,cls){ if(!m.st) return; m.st.className=cls||''; m.st.textContent=txt; }
+  function delMsg(box,ms){
+    if(!window.confirm('Delete this message?')) return;
+    if(!glHasGAS()){ D.demo=D.demo.filter(function(m){ return m.t!==ms; }); box.remove(); return; }
+    glCall('chatDelete',[me(),ms]).then(function(r){ if(r&&r.ok===false) note('Message not found'); box.remove(); }).catch(function(e){ note('Could not delete: '+((e&&e.message)||'error')); });
+  }
   function poll(){
     var p=D.peer; if(!p) return;
     var go=function(r){
       if(D.peer!==p||!r||!r.msgs) return;
       r.msgs.forEach(function(m){ if(m.t<=D.since) return; D.since=m.t;
-        var x=add(String(m.text==null?'':m.text),m.from===me()); var t=document.createElement('small'); t.textContent=new Date(m.t).toTimeString().slice(0,5); x.box.appendChild(t); });
+        var x=add(String(m.text==null?'':m.text),m.from===me()); var t=document.createElement('small'); t.textContent=new Date(m.t).toTimeString().slice(0,5); x.box.appendChild(t);
+          if(m.from===me()){ var dl=document.createElement('a'); dl.className='dc-del'; dl.textContent='✕ delete'; dl.onclick=function(){ delMsg(x.box,m.t); }; t.appendChild(dl); } });
     };
     if(!glHasGAS()) return go({msgs:D.demo});
     glCall('chatThread',[me(),p,D.since]).then(go).catch(function(){});
@@ -9751,6 +9797,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
       return Promise.all([p2,p3]).then(function(r){ return glCall('saveGoodsEntry',[u,{lat:job.lat,lng:job.lng,note:job.note,photo1Url:r1.url,photo2Url:r[0].url,voiceUrl:r[1].url}]); });
     }).then(function(saved){
       setSt(msgs.loc,'✓ saved to sheet','ok'); glCountBump(saved&&saved.count!=null?saved.count:null);
+      showRow(saved&&saved.summary);
     }).catch(function(e){
       [msgs.loc,msgs.ph,msgs.vo].forEach(function(m){ if(m.st&&m.st.className!=='ok') setSt(m,'✗ '+((e&&e.message)||'failed'),'bad'); });
       var a=document.createElement('a'); a.textContent=' Retry'; a.onclick=function(){ a.remove(); [msgs.loc,msgs.ph,msgs.vo].forEach(function(m){ setSt(m,'retrying…'); }); run(job,msgs); }; msgs.loc.st.appendChild(a);
@@ -9763,7 +9810,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     if(!_gl.voice){ err.textContent='Add a short voice note.'; return; }
     var job={lat:_gl.lat,lng:_gl.lng,note:$('glNote').value.trim(),photos:_gl.photos.slice(),voice:_gl.voice};
     resetForm(); err.style.color='var(--neon-green)'; err.textContent='Sent ✓ — files upload in the background.';
-    var msgs={ loc:add('📍 '+job.lat.toFixed(5)+', '+job.lng.toFixed(5)+(job.note?' — '+job.note:''),true,'saving…'), ph:add('🖼 2 photos',true,'uploading…'), vo:add('🎙 Voice note',true,'uploading…') };
+    var msgs={ loc:addNode(locCard(job),true,'saving…'), ph:addNode(photoCard(job),true,'uploading…'), vo:addNode(voiceCard(job),true,'uploading…') };
     if(!glHasGAS()){ setTimeout(function(){ setSt(msgs.loc,'✓ saved (preview)','ok'); setSt(msgs.ph,'✓ uploaded','ok'); setSt(msgs.vo,'✓ uploaded','ok'); glCountBump(null); },1500); return; }
     run(job,msgs);
   }
