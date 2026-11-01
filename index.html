@@ -1968,6 +1968,11 @@ select.field option{background:#14141d;color:#fff;}select.field option:disabled{
 .ow-load i{width:12px;height:12px;border-radius:50%;background:#b84dff;box-shadow:0 0 12px #b84dff;animation:owDot 1s ease-in-out infinite;}
 .ow-load i:nth-child(2){animation-delay:.15s;background:#00f0ff;box-shadow:0 0 12px #00f0ff;}.ow-load i:nth-child(3){animation-delay:.3s;background:#ff2d95;box-shadow:0 0 12px #ff2d95;}
 @keyframes owDot{0%,100%{transform:translateY(0);opacity:.5;}50%{transform:translateY(-9px);opacity:1;}}
+#ohStats .dx-stat.oh-btn{cursor:pointer;user-select:none;transition:transform .2s,box-shadow .2s;outline:none;}
+#ohStats .dx-stat.oh-btn::after{content:'VIEW LIST ▾';position:absolute;right:16px;bottom:14px;font-size:9.5px;font-weight:800;letter-spacing:1.5px;color:var(--c);}
+#ohStats .dx-stat.oh-btn:hover,#ohStats .dx-stat.oh-btn:focus-visible{transform:translateY(-3px);box-shadow:0 0 28px color-mix(in srgb,var(--c) 45%,transparent);}
+#ohStats .dx-stat.oh-btn.oh-on::after{content:'HIDE LIST ▴';}
+#ohDistPanel{margin:-12px 0 26px;animation:dxIn .35s both;}
 .op-drow{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:8px;align-items:center;padding:11px 4px;border-bottom:1px dashed rgba(255,255,255,.08);font-size:15px;}
 .op-drow:last-child{border-bottom:0;}.op-drow b{color:#fff;}.op-drow span{text-align:center;color:#fff;font-weight:700;}
 .op-drow .c{color:#00f0ff;}.op-drow .g{color:#39ff88;}.op-drow .r{color:#ff3355;}
@@ -3375,6 +3380,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
       <div class="ow-role" id="ohRole"></div>
     </div>
     <div class="dx-stats" id="ohStats"></div>
+    <div class="ow-card" id="ohDistPanel" hidden><h3>Distributors in my city</h3><div id="ohDistPanelList"></div></div>
     <div class="ow-wrap">
       <div class="ow-card"><h3>My details<em class="dx-sample" id="ohSample" hidden>DEMO</em></h3><ul class="ow-grid" id="ohGrid"></ul></div>
       <div class="ow-card"><h3>My activities</h3><div id="ohActs"></div></div>
@@ -6296,6 +6302,25 @@ function ownerEntryRefresh(){
   } else { apply(Object.keys(dOwn().owned).length>0); }
 }
 
+/* Owner profile: Distributors card works as a button -> list of distributors under this owner */
+function ohDistRender(){
+  var list=document.getElementById('ohDistPanelList'), d=window._ohDistData||[];
+  list.innerHTML=d.length
+    ? '<div class="op-drow op-dhead"><span style="text-align:left">Distributor</span><span>Locations</span><span>Collected</span><span>Missing</span></div>'
+      + d.map(function(x){ return '<div class="op-drow"><b>'+dxEsc(x.name||'—')+'</b><span class="c">'+(x.loc||0)+'</span><span class="g">'+(x.col||0)+'</span><span class="'+(x.mis?'r':'')+'">'+(x.mis||0)+'</span></div>'; }).join('')
+    : '<div class="dx-empty" style="padding:14px 0">No distributors in your city yet.</div>';
+}
+function ohDistToggle(){
+  var p=document.getElementById('ohDistPanel'), c=document.querySelector('#ohStats .dx-stat'); if(!p) return;
+  var open=p.hidden; if(open) ohDistRender();
+  p.hidden=!open; if(c){ c.classList.toggle('oh-on',open); c.setAttribute('aria-expanded',open?'true':'false'); }
+}
+function ohDistInit(){
+  var c=document.querySelector('#ohStats .dx-stat'); if(!c) return;
+  c.setAttribute('role','button'); c.setAttribute('tabindex','0'); c.setAttribute('aria-expanded','false'); c.classList.add('oh-btn');
+  var p=document.getElementById('ohDistPanel'); if(p) p.hidden=true;
+  c.onclick=ohDistToggle; c.onkeydown=function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); ohDistToggle(); } };
+}
 /* 4) the owner's own profile page */
 function showOwnerHome(){
   if(!cu){ window._pendingDest='owner'; openOverlay('authOverlay'); showLogin(); return; }
@@ -6306,6 +6331,7 @@ function showOwnerHome(){
     owFill('oh',r);
     var s=r.stats||{distributors:0,loc:0,col:0,mis:0};
     dxStats('ohStats',[{l:'Distributors',v:s.distributors,c:'#b84dff',i:'🧑‍💼'},{l:'Locations Saved',v:s.loc,c:'#00f0ff',i:'📍'},{l:'Collected',v:s.col,c:'#39ff88',i:'📦'},{l:'Missing',v:s.mis,c:'#ff3355',i:'⚠️'}]);
+    window._ohDistData=r.dist||[]; ohDistInit();
     document.getElementById('ohActs').innerHTML=OW_ACTS.map(function(a){
       var on=!!(r.owner.acts&&r.owner.acts[a.k]);
       return '<div class="tg-row"><div class="tg-txt"><b>'+dxEsc(a.l)+'</b><small>'+dxEsc(a.s)+'</small></div><span class="ra-chip '+(on?'win':'miss')+'" style="margin:0">'+(on?'ON':'OFF')+'</span></div>';
@@ -7709,7 +7735,7 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
 </style>
 <style id="mvCss">
 /* Robot click -> copy of the comms-console window shell (same size/look), only Dig Solo / Race Arena inside */
-#pcBox,#pcBadge{display:none!important;}
+#pcRoot.mv-cust #pcBox,#pcRoot.mv-cust #pcBadge{display:none!important;}
 #mvBox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2147482999;width:min(1040px,calc(100vw - 24px));height:min(660px,calc(100vh - 90px));display:flex;align-items:center;justify-content:center;background:radial-gradient(at 50% 0%,rgba(255,138,30,.08),transparent 60%),linear-gradient(160deg,#12121c,#0a0a0f);border:1px solid rgba(255,255,255,.22);border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.7);overflow:hidden;font-family:'Inter',system-ui,sans-serif;color:#e8ecff;}
 #mvBox[hidden]{display:none!important;}
 #mvBox .mv-x{position:absolute;top:18px;right:18px;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:#0d0f16;color:#fff;font-size:17px;line-height:1;cursor:pointer;z-index:3;}
@@ -7803,10 +7829,19 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
     var bx=$('pcBox'); bx.hidden=!open; clearInterval(S.tl);
     if(open){ mountRobot(); rows(); load(); } else if(S.peer) closePeer();
   }
-  $('pcFab').onclick=function(){ var m=document.getElementById('mvBox'); if(m) m.hidden=!m.hidden; };
+  function mvIsCust(){
+    var r=''; try{ r=String((cu&&cu.role)||'').toLowerCase(); }catch(e){}
+    if(r==='owner'||r==='admin'||r==='distributor') return false;
+    if(window._isOwner===true) return false;
+    return true;
+  }
+  $('pcFab').onclick=function(){
+    if(mvIsCust()){ $('pcRoot').classList.add('mv-cust'); var m=document.getElementById('mvBox'); if(m) m.hidden=!m.hidden; }
+    else { $('pcRoot').classList.remove('mv-cust'); window.mvClose(); toggle($('pcBox').hidden); }
+  };
   window.mvClose=function(){ var m=document.getElementById('mvBox'); if(m) m.hidden=true; };
   (function(){ var x=document.getElementById('mvX'); if(x) x.onclick=window.mvClose; })();
-  setInterval(function(){ if($('pcRoot').hidden) window.mvClose(); },800);
+  setInterval(function(){ if($('pcRoot').hidden) window.mvClose(); $('pcRoot').classList.toggle('mv-cust',mvIsCust()); },800);
   $('pcX').onclick=function(){ toggle(false); };
   $('pcBack').onclick=closePeer;
   $('pcSend').onclick=send;
