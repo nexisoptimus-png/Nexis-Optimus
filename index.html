@@ -9933,9 +9933,24 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     var fh=$('dcFormHost'); fh.classList.add('slip'); window._dcSlip=true;
     var css='<style>header.top,.hero,#rules,.scan{display:none!important}.arena{padding-top:14px!important}</style>';
     var fr=document.createElement('iframe');
-    fr.srcdoc=NX_SLIP_HTML.replace("window.google = { script: { get run()","window.google = parent.google; window.__mock = { script: { get run()").replace("String('' || '')","String('"+m+"' || '')").replace('</head>',css+'</head>');
+    fr.srcdoc=NX_SLIP_HTML.replace("window.google = { script: { get run()","window.google = parent.google; window.__mock = { script: { get run()").replace("String('' || '')","String('"+m+"' || '')").replace("const data = (await shrink($('file').files[0])).split(',')[1];","const data = (await shrink($('file').files[0])).split(',')[1]; try{ if(parent.nxSlipChat) parent.nxSlipChat(data); }catch(_){}").replace('</head>',css+'</head>');
     fh.appendChild(fr);
   }
+  /* customer slip -> preview card in the owner chat + automatic "checking" message */
+  window.nxSlipChat=function(b64){
+    if(!b64) return;
+    var src=/^data:/.test(b64)?b64:'data:image/jpeg;base64,'+b64;
+    var tm=function(){ var n=new Date(); return (n.getHours()<10?'0':'')+n.getHours()+':'+(n.getMinutes()<10?'0':'')+n.getMinutes(); };
+    var c=document.createElement('div'); c.className='dc-m me';
+    var h=document.createElement('div'); h.textContent='🧾 Deposit slip'; h.style.cssText='font-weight:800;margin-bottom:6px;';
+    var im=document.createElement('img'); im.src=src; im.alt='Deposit slip'; im.style.cssText='display:block;width:230px;max-width:100%;border-radius:10px;border:1px solid rgba(255,255,255,.18);';
+    var sm=document.createElement('small'); sm.textContent=tm(); c.appendChild(h); c.appendChild(im); c.appendChild(sm);
+    var box=$('dcMsgs'); box.appendChild(c); box.scrollTop=box.scrollHeight;
+    setTimeout(function(){
+      var a=document.createElement('div'); a.className='dc-m'; a.textContent='WE ARE CHECKING YOUR DEPOSIT SLIP. PLEASE WAIT, IT WILL TAKE FEW TIMES.';
+      var t2=document.createElement('small'); t2.textContent=tm(); a.appendChild(t2); box.appendChild(a); box.scrollTop=box.scrollHeight;
+    },700);
+  };
   var _csp=window.closeSlipPreview; window.closeSlipPreview=function(){ if(_csp) _csp(); if(window._dcSlip) window.dcClose(); };
   window.dcOpen=function(mode){
     if(typeof cu==='undefined'||!cu){ requireAuth('race'); return; }
