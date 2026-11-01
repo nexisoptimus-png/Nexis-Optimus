@@ -2543,7 +2543,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
 <div id="whatPage" style="display:none;">
   <section class="section" style="padding-top:28px;">
     <div class="section-inner">
-      <button class="ac-back" onclick="showProfile()">← Back to profile</button>
+      <button class="ac-back" onclick="whatBack()">← Back to profile</button>
       <div class="section-head" style="margin-top:28px;">
         <div class="section-tag" style="color:var(--neon-purple);border:1px solid rgba(184,77,255,0.35);">About</div>
         <h2>What Is Nexis?</h2>
@@ -5259,11 +5259,20 @@ function raRender(ev){
   alignPlay();
 }
 /* What is Nexis? → Click Here: chart එකයි description එකයි තියෙන page එක */
+var _whatFrom='';
 function raWhatIs(){
+  var _rp=document.getElementById('racePage');
+  _whatFrom=(_rp&&_rp.style.display==='block')?'race':'';
   hideAllPages();
   document.getElementById('whatPage').style.display='block';
   setNavUser();
   window.scrollTo(0,0);
+}
+/* Back: කොහෙන්ද ආවේ ඒ profile page එකටම ආපහු යනවා */
+function whatBack(){
+  var f=_whatFrom; _whatFrom='';
+  if(f==='race'&&typeof showRacePage==='function'){ showRacePage(); return; }
+  showProfile();
 }
 function raFetchJoin(){
   try{
