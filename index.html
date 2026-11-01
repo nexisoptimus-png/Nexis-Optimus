@@ -9645,7 +9645,10 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 .dc-hd{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #26262a;}
 .dc-av{width:38px;height:38px;border-radius:50%;background:var(--neon-orange,#ff7a14);color:#000;display:grid;place-items:center;font-weight:800;}
 .dc-hd b{display:block;font-size:15px;color:#fff;}.dc-hd small{color:#39ff88;font-size:12px;}
-#dcMsgs{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px;}
+#dcMsgs{flex:1;min-height:0;overflow-y:scroll;padding:16px;display:flex;flex-direction:column;gap:10px;scrollbar-width:thin;scrollbar-color:#ff7a14 #121214;}
+#dcMsgs::-webkit-scrollbar{width:9px;display:block;}#dcMsgs::-webkit-scrollbar-track{background:#121214;}#dcMsgs::-webkit-scrollbar-thumb{background:#ff7a14;border-radius:8px;}
+#dcMsgs>*{flex:none!important;}
+.dcf-time{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;}.dcf-time span{font-size:11px;font-weight:700;color:#ffd9b0;background:rgba(255,122,20,.16);border:1px solid rgba(255,122,20,.4);border-radius:20px;padding:2px 9px;}
 .dc-m{max-width:82%;padding:9px 13px;border-radius:14px;background:#18181b;color:#f4f4f5;font-size:14px;line-height:1.45;word-break:break-word;}
 .dc-m.me{align-self:flex-end;background:#2b1707;border:1px solid rgba(255,122,20,.35);}
 .dc-m small{display:block;font-size:11px;color:#a1a1aa;margin-top:3px;}
@@ -9772,11 +9775,11 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
   }; }
   function dcfSec(lbl){ var d=el('div','dcf-sec'); if(lbl) d.appendChild(el('div','dcf-lbl',lbl)); return d; }
   function finalCard(d,job,url){
-    d.className='dc-m me dc-final'; d.innerHTML='';
+    d.className='dc-m me dc-final'; d.innerHTML=''; var sc=function(){ var b=$('dcMsgs'); if(b) b.scrollTop=b.scrollHeight; }; setTimeout(sc,60); setTimeout(sc,700); setTimeout(sc,1800);
     var m=/row=(\d+)/.exec(url||''), now=new Date(), p2=function(n){ return (n<10?'0':'')+n; };
     var when=now.getFullYear()+'-'+p2(now.getMonth()+1)+'-'+p2(now.getDate())+' '+p2(now.getHours())+':'+p2(now.getMinutes());
     var hd=el('div','dcf-hd'); hd.appendChild(el('div','dcf-badge','✓'));
-    var ht=el('div'); ht.appendChild(el('b',null,'Goods location saved')); ht.appendChild(el('small',null,when+(m?' · Entry #'+m[1]:''))); hd.appendChild(ht); d.appendChild(hd);
+    var ht=el('div'); ht.appendChild(el('b',null,'Goods location saved')); var dt=now.getFullYear()+'-'+p2(now.getMonth()+1)+'-'+p2(now.getDate()), h12=now.getHours()%12||12, tmx=h12+':'+p2(now.getMinutes())+':'+p2(now.getSeconds())+' '+(now.getHours()<12?'AM':'PM'); var tr=el('div','dcf-time'); tr.appendChild(el('span',null,'📅 '+dt)); tr.appendChild(el('span',null,'🕒 '+tmx)); if(m) tr.appendChild(el('span',null,'# Entry '+m[1])); ht.appendChild(tr); hd.appendChild(ht); d.appendChild(hd);
     /* location */
     var s1=dcfSec('📍 Location'), mp=el('div','dcf-map','📍'), fr=el('iframe');
     fr.loading='lazy'; fr.title='Map'; fr.referrerPolicy='no-referrer-when-downgrade'; fr.src='https://maps.google.com/maps?q='+job.lat+','+job.lng+'&z=17&output=embed'; mp.appendChild(fr); s1.appendChild(mp);
