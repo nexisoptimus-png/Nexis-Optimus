@@ -7771,8 +7771,26 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
   function isOwnerU(){ try{ return !!(cu&&(String(cu.role||'').toLowerCase()==='owner'||window._isOwner===true)); }catch(e){ return false; } }
   function RK(){ return isOwnerU()?['admin','distributor','customer']:['owner','distributor','customer']; }
   var ADM_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.2c0 4.6-3.1 8.2-7.5 9.8-4.4-1.6-7.5-5.2-7.5-9.8V6z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/></svg>';
+  /* owner chat: only the APPROVED distributors of this owner's city (list comes from the server: getMyChatDistributors) */
+  function allow(x){
+    if(!isOwnerU()||x.role!=='distributor') return true;
+    if(!gas()) return true;
+    if(S.myDist===undefined) return false;            /* still loading -> hide until we know */
+    if(S.myDist===null) return true;                  /* server function not available -> old behaviour */
+    return S.myDist.indexOf(String(x.u).toLowerCase())>-1;
+  }
+  function loadMyDist(){
+    if(!isOwnerU()||!gas()) return;
+    if(S.mdT&&Date.now()-S.mdT<20000) return; S.mdT=Date.now();
+    var r=google.script.run.withSuccessHandler(function(x){
+      S.myDist=(x&&x.found&&x.users)?x.users.map(function(u){ return String(u).toLowerCase(); }):null;
+      if(!$('pcBox').hidden&&!$('pcList').hidden) rows();
+    }).withFailureHandler(function(){ S.myDist=null; if(!$('pcBox').hidden&&!$('pcList').hidden) rows(); });
+    if(typeof r.getMyChatDistributors==='function') r.getMyChatDistributors(me()); else { S.myDist=null; }
+  }
   function fixConsole(){
     var bx=$('pcBox'); if(!bx) return;
+    loadMyDist();
     if(!bx.style.getPropertyValue('--pc-skull')){ var sk=document.querySelector('.nx-skull-hero'); if(sk){ var bg=getComputedStyle(sk).backgroundImage; if(bg&&bg!=='none') bx.style.setProperty('--pc-skull',bg); } }
     var b=document.querySelector('#pcScene .pc-role[data-r="owner"],#pcScene .pc-role[data-r="admin"]'); if(!b) return;
     if(!b._o) b._o=b.innerHTML;
@@ -7796,11 +7814,11 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
   function rows(){
     fixConsole();
     var L=S.list, h='';
-    RK().forEach(function(r){ var t=L.filter(function(x){return x.role===r;}), o=t.filter(function(x){return x.on;}).length, un=0; t.forEach(function(x){ un+=S.unread[x.u]||0; }); h+='<button type="button" class="pc-chip pc-tab'+(S.role===r?' on':'')+'" data-r="'+r+'"><span class="pc-tl">'+LAB[r].toUpperCase()+'</span><span class="pc-tn"><i></i>'+o+' / '+t.length+'</span>'+(un?'<b class="pc-tb">'+un+'</b>':'')+'</button>'; });
+    RK().forEach(function(r){ var t=L.filter(function(x){return x.role===r&&allow(x);}), o=t.filter(function(x){return x.on;}).length, un=0; t.forEach(function(x){ un+=S.unread[x.u]||0; }); h+='<button type="button" class="pc-chip pc-tab'+(S.role===r?' on':'')+'" data-r="'+r+'"><span class="pc-tl">'+LAB[r].toUpperCase()+'</span><span class="pc-tn"><i></i>'+o+' / '+t.length+'</span>'+(un?'<b class="pc-tb">'+un+'</b>':'')+'</button>'; });
     $('pcChips').innerHTML=h;
     $('pcOn').className='pc-flt'+(S.on?' on':'');
     var qs=($('pcQ').value||'').toLowerCase().trim();
-    var q=L.filter(function(x){ return (x.role===S.role||x.role==='admin')&&(!S.on||x.on)&&(!qs||x.u.toLowerCase().indexOf(qs)>-1); });
+    var q=L.filter(function(x){ return (x.role===S.role||x.role==='admin')&&allow(x)&&(!S.on||x.on)&&(!qs||x.u.toLowerCase().indexOf(qs)>-1); });
     function row(x){ return '<div class="pc-row'+(x.on?'':' off')+'" data-u="'+dxEsc(x.u)+'"><span class="pc-avw"><i class="pc-av">'+dxEsc(x.u.charAt(0).toUpperCase())+'</i><u class="pc-dot'+(x.on?' on':'')+'"></u></span><span class="pc-info"><b>'+dxEsc(x.u)+'</b><small>'+LAB[x.role].replace(/s$/,'')+'</small></span>'+(S.unread[x.u]?'<b class="pc-un">'+S.unread[x.u]+'</b>':'')+'</div>'; }
     var on=q.filter(function(x){return x.on;}), off=q.filter(function(x){return !x.on;}), out='';
     if(on.length) out+='<div class="pc-sec on"><i></i>ONLINE \u00b7 '+on.length+'</div>'+on.map(row).join('');
