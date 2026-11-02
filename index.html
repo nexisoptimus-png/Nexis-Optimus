@@ -2134,6 +2134,10 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
 #gate .gt-hero .gt-cta .rq-lnk{border-radius:6px!important;}
 @media (prefers-reduced-motion:reduce){#gate .gt-hero #gtSelectBtn.obtn::after,#gate #gtSelectBtn.obtn svg{animation:none!important;}}
 </style>
+<style id="nxAdminChatClean">
+/* admin chat: keep only the bot on the left; remove all left-side cards */
+#nxChatSec .cc-scene>.sc-prof,#nxChatSec .cc-scene>.sc-pill,#nxChatSec .cc-scene>.sc-menu,#nxChatSec .cc-scene>.sc-cards{display:none!important;}
+</style>
 </head>
 <body>
 <!-- ═══ INTRO GATE ═══ -->
@@ -7961,7 +7965,7 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
     if(!shown('racePage')) window.nxRaceChat=false;
     if(shown('racePage')&&window.nxRaceChat) return true;
     if(shown('homePage')) return false;
-    var ids=['profilePage','hubPage','adminPage','distPage','custPage','ownerProfPage','ownerHomePage','acctPage'];
+    var ids=['profilePage','hubPage','distPage','custPage','ownerProfPage','ownerHomePage','acctPage'];
     for(var i=0;i<ids.length;i++) if(shown(ids[i])) return true;
     return false;
   }
