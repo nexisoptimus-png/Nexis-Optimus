@@ -10204,6 +10204,21 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
   },true);
 })();
 </script>
+<style id="nxCityInline">
+/* city view: the chat lives inside the right column (under the Owner / Distributors / Customers tabs) */
+#nxChatSec .ccx-conv{display:none!important;}
+#nxChatSec .cc-grid.ccx-in.open .cc-rosters{display:grid!important;}
+#nxChatSec .cc-grid.ccx-in.open .cc-rosters>.cc-roster{display:flex!important;}
+#nxChatSec .cc-grid.ccx-in.open .cc-rosters>.cc-roster .ccx-conv{display:flex!important;flex:1 1 0;min-height:0;width:auto;height:auto;margin:10px 0 0!important;grid-column:auto!important;opacity:1!important;transform:none!important;pointer-events:auto!important;animation:none!important;border-radius:16px;overflow:hidden;}
+#nxChatSec .cc-grid.ccx-in.open #ccXCards{flex:0 0 auto;overflow:visible;padding-bottom:0;}
+#nxChatSec .cc-grid.ccx-in.open #ccXCards .ccx-card{flex:0 0 auto;margin-bottom:0;padding:12px 14px;}
+#nxChatSec .cc-grid.ccx-in.open #ccXCards .ccx-card ul{flex:0 0 auto;max-height:118px;}
+#nxChatSec .cc-grid.ccx-in.open #ccXCards .ccx-card>b{font-size:20px;margin:2px 0 6px;}
+#nxChatSec .cc-grid.ccx-in.open .ccx-conv #ccBack{display:none;}
+#nxChatSec .cc-grid.ccx-in.open .ccx-conv .cc-quick{display:none;}
+#nxChatSec .cc-rosters #ccXCards .cc-tabs{grid-template-columns:repeat(3,1fr)!important;gap:6px;}
+#nxChatSec .cc-rosters #ccXCards .cc-tab{padding:8px 2px 6px;font-size:9px;letter-spacing:.8px;}
+</style>
 <script id="nxAdminCityJs">
 (function(){
   function $(i){ return document.getElementById(i); }
@@ -10257,6 +10272,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     }).join('')+'</div>'+body);
   }
   function pick(city){
+    var bk=$('ccBack'); if(bk&&$('ccGrid').classList.contains('open')) bk.click();
     cur=city;
     mid('<div class="ccx-empty"><b>LOADING\u2026</b>'+esc(city)+'</div>');
     cards('<div class="ccx-empty"><b>LOADING\u2026</b></div>');
@@ -10275,6 +10291,8 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     n.textContent='No chat found for "'+name+'" yet. The chat opens once this player has joined the chat system.';
     $('ccXCards').insertBefore(n,$('ccXCards').firstChild); setTimeout(function(){ if(n.parentNode) n.remove(); },6000);
   }
+  (function(){ var g=$('ccGrid'), conv=g&&g.querySelector('.cc-conv'), host=$('ccXCards')&&$('ccXCards').parentNode;
+    if(conv&&host){ conv.classList.add('ccx-conv'); host.appendChild(conv); g.classList.add('ccx-in'); } })();
   var cx=$('ccXCards');
   if(cx) cx.addEventListener('click',function(e){
     var b=e.target.closest('.cc-tab[data-t]'); if(!b||!lastShow) return;
