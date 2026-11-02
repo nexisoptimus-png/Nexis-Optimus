@@ -3012,20 +3012,21 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
     if(window.innerWidth>760) $('tcInput').focus();
   }
   /* open a chat from the City view (owner / distributor / customer of a city) */
-  window._nxOpenChat=function(name,role,uname){
+  window._nxOpenChat=function(name,role,uname,fail){
+    fail=fail||function(){};
     function look(){
       var n=String(name||'').trim().toLowerCase(), u=String(uname||'').trim().toLowerCase();
-      for(var i=0;i<data.length;i++){ var c=data[i];
-        if(role&&roleOf(c)!==role) continue;
+      for(var k=0;k<2;k++) for(var i=0;i<data.length;i++){ var c=data[i];
+        if(k===0&&role&&roleOf(c)!==role) continue;   /* 1st pass: same role, 2nd pass: any role */
         if((n&&(title(c).toLowerCase()===n||String(c.name||'').toLowerCase()===n||String(c.username||'').toLowerCase()===n))||(u&&String(c.username||'').toLowerCase()===u)) return c;
       } return null;
     }
     var c=look(); if(c){ pick(c.chatId,title(c)); return true; }
     if(!data.length&&!demo){
-      call('adminChatList',[key()],function(list){ data=list||[]; renderAll(); var f=look(); if(f) pick(f.chatId,title(f)); else note('No chat found for '+name); });
+      call('adminChatList',[key()],function(list){ data=list||[]; renderAll(); var f=look(); if(f) pick(f.chatId,title(f)); else fail(name); });
       return true;
     }
-    note('No chat found for '+name+' yet'); return false;
+    fail(name); return false;
   };
   function send(){ sendText($('tcInput').value.trim(),true); }
   function sendText(t,fromInput){
@@ -10267,16 +10268,23 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
       try{ show(city,r); }catch(ex){ mid('<div class="ccx-empty"><b>DISPLAY ERROR</b>'+esc((ex&&ex.message)||ex)+'</div>'); }
     });
   }
+  function nochat(name){
+    var n=document.getElementById('ccxNo'); if(n) n.remove();
+    n=document.createElement('div'); n.id='ccxNo';
+    n.style.cssText='flex:none;margin:0 0 10px;padding:10px 12px;border-radius:12px;background:rgba(255,51,85,.12);border:1px solid rgba(255,51,85,.5);color:#ffb3c0;font-size:12px;line-height:1.4';
+    n.textContent='No chat found for "'+name+'" yet. The chat opens once this player has joined the chat system.';
+    $('ccXCards').insertBefore(n,$('ccXCards').firstChild); setTimeout(function(){ if(n.parentNode) n.remove(); },6000);
+  }
   var cx=$('ccXCards');
   if(cx) cx.addEventListener('click',function(e){
     var b=e.target.closest('.cc-tab[data-t]'); if(!b||!lastShow) return;
     cardTab=b.getAttribute('data-t'); show(lastShow[0],lastShow[1]);
-    if(cardTab==='owner'&&window._nxOpenChat){ var ow=(lastShow[1].owner)||{}; window._nxOpenChat(ow.name,'owner',ow.username); }
+    if(cardTab==='owner'&&window._nxOpenChat){ var ow=(lastShow[1].owner)||{}; window._nxOpenChat(ow.name,'owner',ow.username,nochat); }
   });
   if(cx) cx.addEventListener('click',function(e){
     var b=e.target.closest('.ccx-pl,.ccx-chat'); if(!b||!window._nxOpenChat) return;
     var ow=(lastShow&&lastShow[1].owner)||{};
-    window._nxOpenChat(b.getAttribute('data-n'),b.getAttribute('data-r'),b.getAttribute('data-r')==='owner'?ow.username:'');
+    window._nxOpenChat(b.getAttribute('data-n'),b.getAttribute('data-r'),b.getAttribute('data-r')==='owner'?ow.username:'',nochat);
   });
   var cb=$('ccXCities');
   if(cb) cb.addEventListener('click',function(e){
