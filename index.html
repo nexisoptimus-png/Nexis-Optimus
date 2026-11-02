@@ -2987,7 +2987,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
   }
   function loadList(){
     if(demo){ data=demoList; autoTab(); return renderAll(); }
-    call('adminChatList',[key()],function(list){ data=list||[]; autoTab(); renderAll();
+    call('adminChatList',[key()],function(list){ data=list||[]; window._nxChatData=data; autoTab(); renderAll();
       var u=0; data.forEach(function(c){ if(c.chatId!==cur) u+=Number(c.unread)||0; });
       if(window._admUnr>=0&&u>window._admUnr&&window.nxNotify) window.nxNotify('💬 New message waiting');
       window._admUnr=u; });
@@ -10219,6 +10219,14 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     if(r.customers&&r.customers.length!=null) cs=r.customers.map(function(x){ return (x&&x.name)||String(x); });
     else if(r.sample&&typeof ctyData==='function') cs=ctyData(city).map(function(x){ return x.n; });
     var cn=(r.stats&&r.stats.customers!=null)?r.stats.customers:(cs?cs.length:null);
+    /* same lists as the Comms Console: all distributors + all customers (not split per city) */
+    var CD=window._nxChatData;
+    if(CD&&CD.length){
+      var nm=function(c){ return c.name||c.username||('Chat '+c.chatId); };
+      var ro=function(c){ return String(c.role||'').toLowerCase(); };
+      d=CD.filter(function(c){ return ro(c)==='distributor'; }).map(nm); dn=d.length;
+      cs=CD.filter(function(c){ return ro(c)==='customer'; }).map(nm); cn=cs.length;
+    }
     cards('<div class="ccx-card" style="--c:#b84dff"><small>DISTRIBUTORS</small><b>'+esc(dn)+'</b>'+(d.length?list(d):'<div class="ccx-na">No distributors under this owner yet.</div>')+'</div>'
          +'<div class="ccx-card" style="--c:#00f0ff"><small>CUSTOMERS</small><b>'+(cn==null?'\u2014':esc(cn))+'</b>'+(cs&&cs.length?list(cs):'<div class="ccx-na">'+(cn==null?'The server does not send customers per city yet.':'No customers yet.')+'</div>')+'</div>');
   }
