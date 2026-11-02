@@ -7635,6 +7635,8 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
 .pc-ht{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
 #pcBox .pc-star{border:0!important;background:var(--pc-skull,none) center/contain no-repeat!important;box-shadow:none!important;border-radius:0!important;width:42px!important;height:48px!important;filter:drop-shadow(0 0 7px rgba(255,122,20,.5));animation:nxSkFloat 3.2s ease-in-out infinite;}
 #pcBox .pc-star svg{display:none!important;}
+/* console left panel: only the skull logo, role icons and robot remain */
+#pcBox .pc-scene .pc-ht,#pcBox .pc-scene .pc-pill,#pcBox .pc-scene .pc-role small,#pcBox .pc-scene .pc-cards{display:none!important;}
 .pc-brand{font-family:'Inter',sans-serif;font-weight:900;font-size:20px;letter-spacing:2px;color:#fff;line-height:1.1;}
 .pc-brand span{color:#ff8a1e;}
 .pc-brand em{font-style:normal;font-size:.55em;letter-spacing:2px;color:rgba(238,242,251,.75);font-weight:700;margin-left:4px;}
@@ -7791,6 +7793,7 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
   function fixConsole(){
     var bx=$('pcBox'); if(!bx) return;
     loadMyDist();
+    [].forEach.call(document.querySelectorAll('#pcScene .pc-role'),function(b){ var t=LAB[b.getAttribute('data-r')]||''; b.title=t; b.setAttribute('aria-label',t); });
     if(!bx.style.getPropertyValue('--pc-skull')){ var sk=document.querySelector('.nx-skull-hero'); if(sk){ var bg=getComputedStyle(sk).backgroundImage; if(bg&&bg!=='none') bx.style.setProperty('--pc-skull',bg); } }
     var b=document.querySelector('#pcScene .pc-role[data-r="owner"],#pcScene .pc-role[data-r="admin"]'); if(!b) return;
     if(!b._o) b._o=b.innerHTML;
