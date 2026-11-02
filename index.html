@@ -10187,7 +10187,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 (function(){
   function $(i){ return document.getElementById(i); }
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  var cur='', tries=0, cardTab='owner', lastShow=null;
+  var cur='', tries=0;
   function cities(){
     var box=$('ccXCities'); if(!box) return;
     var L=(typeof CTY_LIST!=='undefined'&&CTY_LIST)||[];
@@ -10208,7 +10208,6 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
   }
   function list(arr){ return '<ul>'+arr.map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul>'; }
   function show(city,r){
-    lastShow=[city,r];
     var o=r.owner||{}, ix=Math.max(0,CTY_LIST.indexOf(city)), col=CTY_COL[ix%CTY_COL.length];
     var fb=owAvatar({name:o.name||'?',color:'#00f0ff',photo:''});
     var src=owAvatar({name:o.name||'?',color:col,photo:o.photo,avatar:o.avatar});
@@ -10220,19 +10219,8 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     if(r.customers&&r.customers.length!=null) cs=r.customers.map(function(x){ return (x&&x.name)||String(x); });
     else if(r.sample&&typeof ctyData==='function') cs=ctyData(city).map(function(x){ return x.n; });
     var cn=(r.stats&&r.stats.customers!=null)?r.stats.customers:(cs?cs.length:null);
-    var tabs=[['owner','OWNER','#ff8a1e',o.name?1:0],['distributor','DISTRIBUTORS','#b84dff',dn],['customer','CUSTOMERS','#00f0ff',cn==null?'\u2014':cn]];
-    var body='';
-    if(cardTab==='owner'){
-      var rows=[['Name',o.name],['City',city],['Mobile',o.mobile],['Email',o.email]].filter(function(x){ return x[1]; });
-      body='<div class="ccx-card" style="--c:#ff8a1e"><small>OWNER</small><b style="font-size:22px">'+esc(o.name||'\u2014')+'</b>'+list(rows.map(function(x){ return x[0]+': '+x[1]; }))+'</div>';
-    }else if(cardTab==='distributor'){
-      body='<div class="ccx-card" style="--c:#b84dff"><small>DISTRIBUTORS</small><b>'+esc(dn)+'</b>'+(d.length?list(d):'<div class="ccx-na">No approved distributors under this owner yet.</div>')+'</div>';
-    }else{
-      body='<div class="ccx-card" style="--c:#00f0ff"><small>CUSTOMERS</small><b>'+(cn==null?'\u2014':esc(cn))+'</b>'+(cs&&cs.length?list(cs):'<div class="ccx-na">'+(cn==null?'The server does not send customers per city yet.':'No customers yet.')+'</div>')+'</div>';
-    }
-    cards('<div class="cc-tabs" style="flex:none;padding:0 0 12px">'+tabs.map(function(t){
-      return '<button type="button" class="cc-tab'+(t[0]===cardTab?' on':'')+'" data-t="'+t[0]+'" style="--rc:'+t[2]+'">'+t[1]+'<span class="cc-tn">'+esc(t[3])+'</span></button>';
-    }).join('')+'</div>'+body);
+    cards('<div class="ccx-card" style="--c:#b84dff"><small>DISTRIBUTORS</small><b>'+esc(dn)+'</b>'+(d.length?list(d):'<div class="ccx-na">No distributors under this owner yet.</div>')+'</div>'
+         +'<div class="ccx-card" style="--c:#00f0ff"><small>CUSTOMERS</small><b>'+(cn==null?'\u2014':esc(cn))+'</b>'+(cs&&cs.length?list(cs):'<div class="ccx-na">'+(cn==null?'The server does not send customers per city yet.':'No customers yet.')+'</div>')+'</div>');
   }
   function pick(city){
     cur=city;
@@ -10246,11 +10234,6 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
       try{ show(city,r); }catch(ex){ mid('<div class="ccx-empty"><b>DISPLAY ERROR</b>'+esc((ex&&ex.message)||ex)+'</div>'); }
     });
   }
-  var cx=$('ccXCards');
-  if(cx) cx.addEventListener('click',function(e){
-    var b=e.target.closest('.cc-tab[data-t]'); if(!b||!lastShow) return;
-    cardTab=b.getAttribute('data-t'); show(lastShow[0],lastShow[1]);
-  });
   var cb=$('ccXCities');
   if(cb) cb.addEventListener('click',function(e){
     var b=e.target.closest('.ccx-city'); if(!b) return;
