@@ -2846,16 +2846,19 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
         <div class="cc-tabs"><button type="button" class="cc-tab" data-r="owner" style="--rc:#ff8a1e">OWNERS<span class="cc-tn">0 / 0</span><span class="cc-tu" style="display:none">0</span></button></div>
         <div class="cc-tools"><input class="cc-si" data-r="owner" placeholder="Search player…" autocomplete="off"><button type="button" class="cc-flt cc-ob" data-r="owner">ONLINE</button></div>
         <div class="cc-list" id="tcList_owner"><div class="cc-empty">Loading…</div></div>
+        <div class="cc-x" id="ccXCities"></div>
       </div>
       <div class="cc-roster" data-r="distributor">
         <div class="cc-tabs"><button type="button" class="cc-tab" data-r="distributor" style="--rc:#b84dff">DISTRIBUTORS<span class="cc-tn">0 / 0</span><span class="cc-tu" style="display:none">0</span></button></div>
         <div class="cc-tools"><input class="cc-si" data-r="distributor" placeholder="Search player…" autocomplete="off"><button type="button" class="cc-flt cc-ob" data-r="distributor">ONLINE</button></div>
         <div class="cc-list" id="tcList_distributor"><div class="cc-empty">Loading…</div></div>
+        <div class="cc-x" id="ccXOwner"></div>
       </div>
       <div class="cc-roster" data-r="customer">
         <div class="cc-tabs"><button type="button" class="cc-tab" data-r="customer" style="--rc:#00f0ff">CUSTOMERS<span class="cc-tn">0 / 0</span><span class="cc-tu" style="display:none">0</span></button></div>
         <div class="cc-tools"><input class="cc-si" data-r="customer" placeholder="Search player…" autocomplete="off"><button type="button" class="cc-flt cc-ob" data-r="customer">ONLINE</button></div>
         <div class="cc-list" id="tcList_customer"><div class="cc-empty">Loading…</div></div>
+        <div class="cc-x" id="ccXCards"></div>
       </div>
     </div>
     <div class="cc-conv">
@@ -10128,6 +10131,28 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #nxAdminBot .rb-stage{position:absolute;left:50%;top:0;width:420px;height:490px;margin:0 0 0 -210px;transform:scale(.2);transform-origin:50% 0;transition:transform .25s;}
 #nxAdminBot .rb-glow{display:none;}
 #nxAdminBot:hover .rb-stage{transform:scale(.225);}
+/* cities -> owner -> distributors / customers (the 3 tables) */
+#nxChatSec .cc-rosters>.cc-roster>.cc-tabs,#nxChatSec .cc-rosters>.cc-roster>.cc-tools,#nxChatSec .cc-rosters>.cc-roster>.cc-list{display:none!important;}
+#nxChatSec .cc-x{display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto;padding:14px 12px;scrollbar-width:thin;scrollbar-color:#2a2a3a transparent;font-family:'Inter',system-ui,sans-serif;color:#e8ecfb;}
+#nxChatSec .ccx-city{display:flex;align-items:center;gap:12px;width:100%;flex:none;margin:0 0 8px;padding:13px 14px;border-radius:16px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.02);color:#e8ecfb;text-align:left;cursor:pointer;font:600 15px 'Inter',system-ui,sans-serif;letter-spacing:.5px;transition:border-color .2s,background .2s;}
+#nxChatSec .ccx-city:hover{border-color:#ff8a1e;}
+#nxChatSec .ccx-city.on{border-color:#ff8a1e;background:rgba(255,138,30,.1);box-shadow:inset 0 0 0 1px #ff8a1e;}
+#nxChatSec .ccx-no{font-size:11px;letter-spacing:1.5px;color:#8a93b8;min-width:22px;}
+#nxChatSec .ccx-empty{margin:auto;text-align:center;color:#8a93b8;font-size:13px;line-height:1.5;padding:10px;}
+#nxChatSec .ccx-empty b{display:block;color:#e8ecfb;letter-spacing:2px;font-size:12px;margin-bottom:6px;}
+#nxChatSec .ccx-prof{margin:auto;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;}
+#nxChatSec .ccx-ph{width:150px;height:150px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 3px #ff8a1e,0 0 26px rgba(255,138,30,.45);background:#0d0d16;}
+#nxChatSec .ccx-ph img{width:100%;height:100%;object-fit:cover;display:block;}
+#nxChatSec .ccx-pc{font-weight:900;font-size:22px;letter-spacing:3px;color:#ff8a1e;text-transform:uppercase;}
+#nxChatSec .ccx-pn{font-weight:700;font-size:17px;letter-spacing:.5px;color:#e8ecfb;}
+#nxChatSec .ccx-pn small{display:block;margin-bottom:4px;font-size:10px;font-weight:800;letter-spacing:2px;color:#8a93b8;}
+#nxChatSec .ccx-card{flex:1 1 0;min-height:0;display:flex;flex-direction:column;margin:0 0 12px;padding:16px;border-radius:20px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.02);box-shadow:inset 3px 0 0 var(--c);overflow:hidden;}
+#nxChatSec .ccx-card:last-child{margin-bottom:0;}
+#nxChatSec .ccx-card>small{font-size:10px;font-weight:800;letter-spacing:2px;color:var(--c);}
+#nxChatSec .ccx-card>b{display:block;margin:4px 0 10px;font-size:30px;font-weight:800;}
+#nxChatSec .ccx-card ul{list-style:none;margin:0;padding:0;overflow-y:auto;flex:1;min-height:0;scrollbar-width:thin;}
+#nxChatSec .ccx-card li{padding:7px 0;border-top:1px solid rgba(255,255,255,.07);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#nxChatSec .ccx-card .ccx-na{font-size:12px;color:#8a93b8;}
 @media (max-width:900px){
   #nxChatSec .cc-rosters{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;}
   #nxChatSec .cc-rosters>.cc-roster{flex:0 0 86%;scroll-snap-align:center;}
@@ -10156,6 +10181,66 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     var g=document.getElementById('ccGrid');
     if(g&&g.classList.contains('vk-open')){ var s=document.getElementById('nxChatSec'); try{ if(s) s.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){} }
   },true);
+})();
+</script>
+<script id="nxAdminCityJs">
+(function(){
+  function $(i){ return document.getElementById(i); }
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  var cur='', tries=0;
+  function cities(){
+    var box=$('ccXCities'); if(!box) return;
+    var L=(typeof CTY_LIST!=='undefined'&&CTY_LIST)||[];
+    if(!L.length){ if(tries++<20) setTimeout(cities,500); return; }
+    if(box.children.length===L.length) return;
+    box.innerHTML='';
+    L.forEach(function(c,i){
+      var b=document.createElement('button'); b.type='button'; b.className='ccx-city'; b.setAttribute('data-c',c);
+      b.innerHTML='<span class="ccx-no">'+(i<9?'0':'')+(i+1)+'</span><span>'+esc(c)+'</span>';
+      box.appendChild(b);
+    });
+  }
+  function mid(html){ $('ccXOwner').innerHTML=html; }
+  function cards(html){ $('ccXCards').innerHTML=html; }
+  function idle(){
+    mid('<div class="ccx-empty"><b>SELECT A CITY</b>Tap a city on the left.</div>');
+    cards('<div class="ccx-empty"><b>DISTRIBUTORS &amp; CUSTOMERS</b>They appear here once a city is selected.</div>');
+  }
+  function list(arr){ return '<ul>'+arr.map(function(x){ return '<li>'+esc(x)+'</li>'; }).join('')+'</ul>'; }
+  function show(city,r){
+    var o=r.owner||{}, ix=Math.max(0,CTY_LIST.indexOf(city)), col=CTY_COL[ix%CTY_COL.length];
+    var fb=owAvatar({name:o.name||'?',color:'#00f0ff',photo:''});
+    var src=owAvatar({name:o.name||'?',color:col,photo:o.photo,avatar:o.avatar});
+    mid('<div class="ccx-prof"><div class="ccx-ph"><img alt="" src="'+esc(src)+'" onerror="this.onerror=null;this.src=this.getAttribute(\'data-fb\')" data-fb="'+esc(fb)+'"></div>'
+       +'<div class="ccx-pc">'+esc(city)+'</div><div class="ccx-pn"><small>CITY OWNER</small>'+esc(o.name||'\u2014')+'</div></div>');
+    var d=(r.dist||[]).map(function(x){ return x.name||'\u2014'; });
+    var dn=(r.stats&&r.stats.distributors!=null)?r.stats.distributors:d.length;
+    var cs=null;
+    if(r.customers&&r.customers.length!=null) cs=r.customers.map(function(x){ return (x&&x.name)||String(x); });
+    else if(r.sample&&typeof ctyData==='function') cs=ctyData(city).map(function(x){ return x.n; });
+    var cn=(r.stats&&r.stats.customers!=null)?r.stats.customers:(cs?cs.length:null);
+    cards('<div class="ccx-card" style="--c:#b84dff"><small>DISTRIBUTORS</small><b>'+esc(dn)+'</b>'+(d.length?list(d):'<div class="ccx-na">No distributors under this owner yet.</div>')+'</div>'
+         +'<div class="ccx-card" style="--c:#00f0ff"><small>CUSTOMERS</small><b>'+(cn==null?'\u2014':esc(cn))+'</b>'+(cs&&cs.length?list(cs):'<div class="ccx-na">'+(cn==null?'The server does not send customers per city yet.':'No customers yet.')+'</div>')+'</div>');
+  }
+  function pick(city){
+    cur=city;
+    mid('<div class="ccx-empty"><b>LOADING\u2026</b>'+esc(city)+'</div>');
+    cards('<div class="ccx-empty"><b>LOADING\u2026</b></div>');
+    if(typeof owFetch!=='function') return;
+    owFetch(city,function(err,r){
+      if(cur!==city) return;
+      if(err){ mid('<div class="ccx-empty"><b>COULD NOT LOAD</b>'+esc(err)+'</div>'); cards(''); return; }
+      if(!r||!r.found){ mid('<div class="ccx-empty"><b>No owner in '+esc(city)+' yet</b>An owner appears here once a City Owner request for this city is confirmed.</div>'); cards('<div class="ccx-empty"><b>NO OWNER YET</b></div>'); return; }
+      try{ show(city,r); }catch(ex){ mid('<div class="ccx-empty"><b>DISPLAY ERROR</b>'+esc((ex&&ex.message)||ex)+'</div>'); }
+    });
+  }
+  var cb=$('ccXCities');
+  if(cb) cb.addEventListener('click',function(e){
+    var b=e.target.closest('.ccx-city'); if(!b) return;
+    var all=cb.querySelectorAll('.ccx-city'); for(var i=0;i<all.length;i++) all[i].classList.toggle('on',all[i]===b);
+    pick(b.getAttribute('data-c'));
+  });
+  cities(); idle();
 })();
 </script>
 </body>
