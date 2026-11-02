@@ -2841,14 +2841,22 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
         <div class="sc-card gold"><small>UNREAD</small><b id="scC2">0 messages waiting</b></div>
       </div>
     </div>
-    <div class="cc-roster">
-      <div class="cc-tabs">
-        <button type="button" class="cc-tab" data-r="owner" style="--rc:#ff8a1e">OWNERS<span class="cc-tn">0 / 0</span><span class="cc-tu" style="display:none">0</span></button>
-        <button type="button" class="cc-tab" data-r="distributor" style="--rc:#b84dff">DISTRIBUTORS<span class="cc-tn">0 / 0</span><span class="cc-tu" style="display:none">0</span></button>
-        <button type="button" class="cc-tab" data-r="customer" style="--rc:#00f0ff">CUSTOMERS<span class="cc-tn">0 / 0</span><span class="cc-tu" style="display:none">0</span></button>
+    <div class="cc-rosters" id="ccRosters">
+      <div class="cc-roster" data-r="owner">
+        <div class="cc-tabs"><button type="button" class="cc-tab" data-r="owner" style="--rc:#ff8a1e">OWNERS<span class="cc-tn">0 / 0</span><span class="cc-tu" style="display:none">0</span></button></div>
+        <div class="cc-tools"><input class="cc-si" data-r="owner" placeholder="Search player…" autocomplete="off"><button type="button" class="cc-flt cc-ob" data-r="owner">ONLINE</button></div>
+        <div class="cc-list" id="tcList_owner"><div class="cc-empty">Loading…</div></div>
       </div>
-      <div class="cc-tools"><input id="ccSearch" placeholder="Search player…" autocomplete="off"><button type="button" class="cc-flt" id="ccOnly">ONLINE</button></div>
-      <div class="cc-list" id="tcList"><div class="cc-empty">Loading…</div></div>
+      <div class="cc-roster" data-r="distributor">
+        <div class="cc-tabs"><button type="button" class="cc-tab" data-r="distributor" style="--rc:#b84dff">DISTRIBUTORS<span class="cc-tn">0 / 0</span><span class="cc-tu" style="display:none">0</span></button></div>
+        <div class="cc-tools"><input class="cc-si" data-r="distributor" placeholder="Search player…" autocomplete="off"><button type="button" class="cc-flt cc-ob" data-r="distributor">ONLINE</button></div>
+        <div class="cc-list" id="tcList_distributor"><div class="cc-empty">Loading…</div></div>
+      </div>
+      <div class="cc-roster" data-r="customer">
+        <div class="cc-tabs"><button type="button" class="cc-tab" data-r="customer" style="--rc:#00f0ff">CUSTOMERS<span class="cc-tn">0 / 0</span><span class="cc-tu" style="display:none">0</span></button></div>
+        <div class="cc-tools"><input class="cc-si" data-r="customer" placeholder="Search player…" autocomplete="off"><button type="button" class="cc-flt cc-ob" data-r="customer">ONLINE</button></div>
+        <div class="cc-list" id="tcList_customer"><div class="cc-empty">Loading…</div></div>
+      </div>
     </div>
     <div class="cc-conv">
       <div class="cc-top" id="tcTop"><span class="cc-tt">SELECT A PLAYER</span></div>
@@ -2891,7 +2899,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
     if(typeof r[fn]!=='function'){ inflight--; adminErr(fn+' is missing on the server. Paste the new Chat.gs and deploy a new version.'); return; }
     try{ r[fn].apply(r,args); }catch(ex){ inflight--; adminErr(String((ex&&ex.message)||ex)); }
   }
-  function adminErr(m){ $('tcStatus').textContent=m; if(!data.length) $('tcList').innerHTML='<div class="cc-empty"><b>CHAT SERVER ERROR</b>'+esc(m)+'</div>'; }
+  function adminErr(m){ $('tcStatus').textContent=m; if(!data.length) ORDER.forEach(function(r){ var e=$('tcList_'+r); if(e) e.innerHTML='<div class="cc-empty"><b>CHAT SERVER ERROR</b>'+esc(m)+'</div>'; }); }
   function key(){return window._admKey||'';}
   function roleOf(c){var r=String(c.role||'').toLowerCase();return ROLES[r]?r:'customer';}
   function isOn(c){return c.online===true||c.online==='true'||c.online===1;}
@@ -2913,12 +2921,15 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
       var on=0,all=0,un=0;
       data.forEach(function(c){ if(roleOf(c)!==r) return; all++; if(isOn(c)) on++; if(c.chatId!==cur) un+=Number(c.unread)||0; });
       var b=sec.querySelector('.cc-tab[data-r="'+r+'"]'), u=b.querySelector('.cc-tu');
-      b.classList.toggle('on',r===tab); b.querySelector('.cc-tn').textContent=on+' / '+all;
+      b.classList.toggle('on',true); b.querySelector('.cc-tn').textContent=on+' / '+all;
       u.textContent=un; u.style.display=un?'':'none';
     });
   }
-  function renderList(){
-    var el=$('tcList'), st=el.scrollTop;
+  var ONLY={}, QS={};
+  function renderList(){ ORDER.forEach(renderListFor); }
+  function renderListFor(tab){
+    var onlyOn=!!ONLY[tab], q=QS[tab]||'';
+    var el=$('tcList_'+tab), st=el.scrollTop;
     var rows=data.filter(function(c){
       if(roleOf(c)!==tab) return false;
       if(onlyOn&&!isOn(c)) return false;
@@ -2940,7 +2951,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
           +'<div class="cc-meta"><span>'+esc(hm(c.time))+'</span>'+(c.unread&&c.chatId!==cur?'<span class="cc-badge">'+c.unread+'</span>':'')+'</div></div>';
       });
     }
-    if(data.length&&!data.some(function(c){return c.role;})) html+='<div class="cc-note">Role and online status are not connected yet, so everyone is listed under Customers. (Next step: backend.)</div>';
+    if(tab==='customer'&&data.length&&!data.some(function(c){return c.role;})) html+='<div class="cc-note">Role and online status are not connected yet, so everyone is listed under Customers. (Next step: backend.)</div>';
     el.innerHTML=html; el.scrollTop=st;
   }
   function renderTop(){
@@ -3012,9 +3023,9 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
     $('tcInput').value=QUICK[+b.getAttribute('data-i')]; $('tcInput').focus();
   });
   sec.querySelector('.cc-tabs').addEventListener('click',function(e){var b=e.target.closest('.cc-tab'); if(!b) return; tab=b.getAttribute('data-r'); autoDone=true; renderTabs(); renderList();});
-  $('ccSearch').addEventListener('input',function(){q=this.value.trim().toLowerCase(); renderList();});
-  $('ccOnly').addEventListener('click',function(){onlyOn=!onlyOn; this.classList.toggle('on',onlyOn); renderList();});
-  $('tcList').addEventListener('click',function(e){var it=e.target.closest('.cc-item'); if(it) pick(it.getAttribute('data-id'),it.getAttribute('data-n'));});
+  sec.querySelectorAll('.cc-si').forEach(function(i){ i.addEventListener('input',function(){ var r=this.getAttribute('data-r'); QS[r]=this.value.trim().toLowerCase(); renderListFor(r); }); });
+  sec.querySelectorAll('.cc-ob').forEach(function(bt){ bt.addEventListener('click',function(){ var r=this.getAttribute('data-r'); ONLY[r]=!ONLY[r]; this.classList.toggle('on',ONLY[r]); renderListFor(r); }); });
+  $('ccRosters').addEventListener('click',function(e){var it=e.target.closest('.cc-item'); if(it) pick(it.getAttribute('data-id'),it.getAttribute('data-n'));});
   $('tcTop').addEventListener('click',function(e){ if(e.target.closest('#ccBack')){ cur=null; $('ccGrid').classList.remove('open'); $('tcMsgs').innerHTML='<div class="cc-empty"><b>NO SIGNAL</b>Pick a player on the left to open a channel.</div>'; renderAll(); } });
 
   /* ── rich messages: photo / voice are sent as "[img]data:…" / "[voice]data:…" ── */
@@ -7965,7 +7976,7 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
     if(!shown('racePage')) window.nxRaceChat=false;
     if(shown('racePage')&&window.nxRaceChat) return true;
     if(shown('homePage')) return false;
-    var ids=['profilePage','hubPage','distPage','custPage','ownerProfPage','ownerHomePage','acctPage'];
+    var ids=['profilePage','hubPage','adminPage','distPage','custPage','ownerProfPage','ownerHomePage','acctPage'];
     for(var i=0;i<ids.length;i++) if(shown(ids[i])) return true;
     return false;
   }
@@ -10099,6 +10110,36 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
   window.dcClose0=window.dcClose;
   $('dcSend').onclick=send; $('dcInp').onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); send(); } };
   document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&$('dcOverlay').classList.contains('open')) dcClose(); });
+})();
+</script>
+<style id="nxAdminChat3">
+/* admin chat: 3 tables (owners | distributors | customers); the bot lives in the bottom-right corner */
+#nxChatSec .cc-scene{position:absolute!important;left:0!important;top:0!important;width:1px!important;height:1px!important;min-height:0!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important;}
+#nxChatSec .cc-grid{display:block!important;position:relative;height:auto!important;grid-template-columns:none!important;}
+#nxChatSec .cc-grid:not(.vk-open){height:0!important;overflow:hidden!important;visibility:hidden;}
+#nxChatSec .cc-rosters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;height:640px;}
+#nxChatSec .cc-rosters>.cc-roster{grid-column:auto!important;grid-row:auto!important;margin:0!important;min-width:0;height:100%;display:flex!important;flex-direction:column;opacity:1!important;transform:none!important;pointer-events:auto!important;}
+#nxChatSec .cc-rosters .cc-tabs{grid-template-columns:1fr!important;}
+#nxChatSec .cc-grid.open .cc-rosters{display:none!important;}
+#nxChatSec .cc-grid.open .cc-rosters>.cc-roster{display:none!important;}
+#nxChatSec .cc-grid.open .cc-conv{grid-column:auto!important;width:min(460px,100%);height:640px;margin:0 auto!important;}
+@media (max-width:900px){
+  #nxChatSec .cc-rosters{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;}
+  #nxChatSec .cc-rosters>.cc-roster{flex:0 0 86%;scroll-snap-align:center;}
+}
+</style>
+<script id="nxAdminChat3Js">
+(function(){
+  var f=document.getElementById('pcFab'); if(!f) return;
+  function adminOn(){ var a=document.getElementById('adminPage'); return !!a&&getComputedStyle(a).display!=='none'; }
+  /* admin: tap the small bot -> open the 3 tables; tap again -> close */
+  f.addEventListener('click',function(e){
+    if(!adminOn()) return;
+    e.stopImmediatePropagation(); e.preventDefault();
+    if(typeof window.vkToggleChat==='function') window.vkToggleChat();
+    var g=document.getElementById('ccGrid');
+    if(g&&g.classList.contains('vk-open')){ var s=document.getElementById('nxChatSec'); try{ if(s) s.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){} }
+  },true);
 })();
 </script>
 </body>
