@@ -9975,7 +9975,9 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     var p=D.peer; if(!p) return;
     var go=function(r){
       if(D.peer!==p||!r||!r.msgs) return;
-      r.msgs.forEach(function(m){ if(m.t<=D.since) return; D.since=m.t;
+      D.seen=D.seen||{};
+      r.msgs.slice().sort(function(a,b){ return (a.t||0)-(b.t||0); }).forEach(function(m){
+        var k=m.t+'|'+m.from+'|'+m.text; if(D.seen[k]) return; D.seen[k]=1; if(m.t>D.since) D.since=m.t;
         var x=add(String(m.text==null?'':m.text),m.from===me()); var t=document.createElement('small'); t.textContent=new Date(m.t).toTimeString().slice(0,5); x.box.appendChild(t);
           if(m.from===me()){ var dl=document.createElement('a'); dl.className='dc-del'; dl.textContent='✕ delete'; dl.onclick=function(){ delMsg(x.box,m.t); }; t.appendChild(dl); } });
     };
@@ -9987,10 +9989,10 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     if(cu&&cu.city){ var m=o.filter(function(x){return String(x.city||'').toLowerCase()===String(cu.city).toLowerCase();}); if(m.length) o=m; }
     if(!o.length){ $('dcPeer').textContent='No owner found for your city yet'; return; }
     D.peer=o[0].u; $('dcPeer').textContent='Owner — '+(o[0].city||(cu&&cu.city)||o[0].u); $('dcAv').textContent=String(o[0].u).charAt(0).toUpperCase();
-    poll(); clearInterval(D.tp); D.tp=setInterval(poll,5000);
+    poll(); clearInterval(D.tp); D.tp=setInterval(poll,3000);
   }
   function chatInit(){
-    $('dcMsgs').innerHTML=''; D.peer=null; D.since=0; clearInterval(D.tp); $('dcPeer').textContent='Finding your owner…';
+    $('dcMsgs').innerHTML=''; D.peer=null; D.since=0; D.seen={}; clearInterval(D.tp); $('dcPeer').textContent='Finding your owner…';
     if(!glHasGAS()) return pick([{u:'kasun',role:'owner',city:'Your city'}]);
     glCall('chatContacts',[me()]).then(function(r){ pick(r&&r.list); }).catch(function(){ $('dcPeer').textContent='Could not load your owner'; });
   }
