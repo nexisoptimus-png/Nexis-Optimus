@@ -4,9 +4,31 @@
 <!-- NEXIS API BRIDGE: lets this GitHub Pages site talk to the SAME Google Sheets backend (Apps Script web app) as the laptop version -->
 <script id="nxApiBridge">
 window.NEXIS_PROFILE_BUILD="v4";
+/* FIX: summary links always use THIS web app's /exec URL (no /u/N/, no old deployment id) so they open with any Google account */
+window.nxSumUrl=function(u){
+  u=String(u==null?'':u);
+  if(!/^https:\/\/script\.google\.com\/macros\//.test(u)) return u;
+  var base=window.NEXIS_EXEC_URL||'';
+  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(base)) return u.replace(/\/macros\/u\/\d+\//,'/macros/');
+  var q=u.indexOf('?'), qs=q>-1?u.slice(q):'';
+  return base.replace(/\?.*$/,'')+qs;
+};
+/* FIX: if the voice <audio> cannot load from Drive, swap in Drive's own preview player (same one the distributor history uses) */
+window.nxVoiceFB=function(a){
+  try{
+    var id=a.getAttribute('data-vid'); if(!id||a.getAttribute('data-fb')) return;
+    a.setAttribute('data-fb','1');
+    var f=document.createElement('iframe');
+    f.src='https://drive.google.com/file/d/'+id+'/preview';
+    f.title='Voice note'; f.setAttribute('allow','autoplay'); f.setAttribute('loading','lazy');
+    f.style.cssText='display:block;width:100%;height:96px;border:0;border-radius:10px;background:#0a0a0f;';
+    a.parentNode.replaceChild(f,a);
+  }catch(e){}
+};
 (function(){
   /* >>> PASTE YOUR APPS SCRIPT WEB APP URL HERE (ends with /exec) <<< */
   var URL_ = 'https://script.google.com/macros/s/AKfycbx1fXRhReJZmzC7XKPXKZswKLcAdcGPOBva19ma4SBqpaBJH19mza9SPiGU2HP841g/exec';
+  window.NEXIS_EXEC_URL = URL_;
   if(window.google && window.google.script && window.google.script.run) return;      /* already inside Apps Script */
   if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(URL_)) return;           /* not configured yet -> old demo mode */
   function make(ok,fail){
@@ -5583,7 +5605,7 @@ function glCard(e,i){
     '<div class="gl-actions">'+
       '<a class="gl-btn" href="'+glEsc(e.mapLink)+'" target="_blank" rel="noopener">📍 Map</a>'+
       '<button type="button" class="gl-btn sum" onclick="glOpenPage('+i+')">Summary link</button>'+
-      '<button type="button" class="gl-btn" data-u="'+glEsc(e.summary)+'" onclick="glCopy(this)">Copy link</button>'+
+      '<button type="button" class="gl-btn" data-u="'+glEsc(window.nxSumUrl(e.summary))+'" onclick="glCopy(this)">Copy link</button>'+
     '</div></div>';
 }
 function glRender(list){
@@ -5709,7 +5731,7 @@ async function glSave(){
     }
     var sum = (typeof saved!=='undefined' && saved && saved.summary) ? saved.summary : '';
     err.style.color='var(--neon-green)';
-    err.innerHTML = '✓ Saved!' + (sum ? ' <a href="'+glEsc(sum)+'" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-decoration:underline;">Open summary link</a>' : '');
+    err.innerHTML = '✓ Saved!' + (sum ? ' <a href="'+glEsc(window.nxSumUrl(sum))+'" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-decoration:underline;">Open summary link</a>' : '');
     btn.textContent='Saved ✓'; keepDisabled=true;
     glCountBump(saved && saved.count!=null ? saved.count : null);
   }catch(e){
@@ -7904,8 +7926,8 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
     if(o.n) h+='<div class="pc-en">\uD83D\uDCDD '+dxEsc(o.n)+'</div>';
     var ps=(o.p||[]).filter(okUrl);
     if(ps.length){ h+='<div class="pc-eph">'+ps.map(function(u){ var id=dvId(u), th=id?'https://drive.google.com/thumbnail?id='+id+'&sz=w640':u; return '<a target="_blank" rel="noopener" href="'+dxEsc(u)+'"><img loading="lazy" alt="photo" src="'+dxEsc(th)+'"></a>'; }).join('')+'</div>'; }
-    if(okUrl(o.v)){ var vid=dvId(o.v); h+='<div class="pc-en">\uD83C\uDF99 Voice note</div><audio controls preload="none" src="'+dxEsc(vid?'https://drive.google.com/uc?export=download&id='+vid:o.v)+'"></audio><a class="pc-el" target="_blank" rel="noopener" href="'+dxEsc(o.v)+'">Open voice \u2197</a>'; }
-    if(okUrl(o.s)) h+='<a class="pc-ebtn" target="_blank" rel="noopener" href="'+dxEsc(o.s)+'">Open summary page \u2197</a>';
+    if(okUrl(o.v)){ var vid=dvId(o.v); h+='<div class="pc-en">\uD83C\uDF99 Voice note</div><audio controls preload="none"'+(vid?' data-vid="'+dxEsc(vid)+'" onerror="nxVoiceFB(this)"':'')+' src="'+dxEsc(vid?'https://drive.google.com/uc?export=download&id='+vid:o.v)+'"></audio><a class="pc-el" target="_blank" rel="noopener" href="'+dxEsc(o.v)+'">Open voice \u2197</a>'; }
+    if(okUrl(o.s)) h+='<a class="pc-ebtn" target="_blank" rel="noopener" href="'+dxEsc(window.nxSumUrl(o.s))+'">Open summary page \u2197</a>';
     return h+'</div>';
   }
   function rich(t){
@@ -9916,7 +9938,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
   /* the saved goods entry is also sent to the owner as one card message */
   function sendEntry(job,u1,u2,vu,sum){
     if(!D.peer||!glHasGAS()) return;
-    var o={a:job.lat,o:job.lng,n:String(job.note||'').slice(0,200),p:[u1,u2],v:vu,s:String(sum||'')};
+    var o={a:job.lat,o:job.lng,n:String(job.note||'').slice(0,200),p:[u1,u2],v:vu,s:window.nxSumUrl(sum||'')};
     glCall('chatSend',[me(),D.peer,'[entry]'+JSON.stringify(o)]).catch(function(){});
   }
   function sendText(t){
@@ -9951,8 +9973,8 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
   }; }
   function rowCard(url){ return function(d){
     d.appendChild(el('div','dc-lbl','🔗 Row link'));
-    var a=el('a','dc-rowlink','Open summary page ↗'); a.href=url; a.target='_blank'; a.rel='noopener'; d.appendChild(a);
-    d.appendChild(el('div','dc-note',url));
+    var a=el('a','dc-rowlink','Open summary page ↗'); a.href=window.nxSumUrl(url); a.target='_blank'; a.rel='noopener'; d.appendChild(a);
+    d.appendChild(el('div','dc-note',window.nxSumUrl(url)));
   }; }
   function dcfSec(lbl){ var d=el('div','dcf-sec'); if(lbl) d.appendChild(el('div','dcf-lbl',lbl)); return d; }
   function finalCard(d,job,url){
@@ -9976,7 +9998,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     var s4=dcfSec('🎙 Voice note'), au=el('audio'); au.controls=true; au.preload='metadata'; au.src=URL.createObjectURL(job.voice); s4.appendChild(au); d.appendChild(s4);
     /* row link */
     if(/^https:\/\//.test(url||'')){
-      var ft=el('div','dcf-ft'), ob=el('a','dcf-btn','Open summary page ↗'); ob.href=url; ob.target='_blank'; ob.rel='noopener'; ft.appendChild(ob);
+      var ft=el('div','dcf-ft'), ob=el('a','dcf-btn','Open summary page ↗'); ob.href=window.nxSumUrl(url); ob.target='_blank'; ob.rel='noopener'; ft.appendChild(ob);
       var cb=el('button','dcf-copy','Copy link'); cb.type='button';
       cb.onclick=function(){
         var done=function(){ cb.textContent='Copied ✓'; setTimeout(function(){ cb.textContent='Copy link'; },1800); };
