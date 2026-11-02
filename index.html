@@ -10123,6 +10123,8 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #nxChatSec .cc-grid.open .cc-rosters{display:none!important;}
 #nxChatSec .cc-grid.open .cc-rosters>.cc-roster{display:none!important;}
 #nxChatSec .cc-grid.open .cc-conv{grid-column:auto!important;width:min(460px,100%);height:640px;margin:0 auto!important;}
+/* the corner bot always shows on the admin page */
+html body:has(#adminPage[style*="display: block"]) #pcRoot[hidden]{display:block!important;}
 @media (max-width:900px){
   #nxChatSec .cc-rosters{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;}
   #nxChatSec .cc-rosters>.cc-roster{flex:0 0 86%;scroll-snap-align:center;}
@@ -10132,6 +10134,8 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 (function(){
   var f=document.getElementById('pcFab'); if(!f) return;
   function adminOn(){ var a=document.getElementById('adminPage'); return !!a&&getComputedStyle(a).display!=='none'; }
+  /* keep trying to put the bot picture on the corner button (in case the bot was not ready yet) */
+  setInterval(function(){ try{ var h=document.getElementById('pcFabBot'); if(!h||h.firstChild) return; var rig=document.getElementById('rxRig'); if(!rig||!rig.firstChild) return; var st=document.createElement('div'); st.className='rb-stage'; st.innerHTML='<div class="rb-float rx3"></div>'; var c=rig.cloneNode(true); c.removeAttribute('id'); st.firstChild.appendChild(c); h.appendChild(st); }catch(e){} },1500);
   /* admin: tap the small bot -> open the 3 tables; tap again -> close */
   f.addEventListener('click',function(e){
     if(!adminOn()) return;
