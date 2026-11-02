@@ -10123,8 +10123,11 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #nxChatSec .cc-grid.open .cc-rosters{display:none!important;}
 #nxChatSec .cc-grid.open .cc-rosters>.cc-roster{display:none!important;}
 #nxChatSec .cc-grid.open .cc-conv{grid-column:auto!important;width:min(460px,100%);height:640px;margin:0 auto!important;}
-/* the corner bot always shows on the admin page */
-html body:has(#adminPage[style*="display: block"]) #pcRoot[hidden]{display:block!important;}
+#nxAdminBot{position:fixed;right:12px;bottom:8px;width:88px;height:104px;z-index:2147483000;cursor:pointer;display:none;background:none;border:0;padding:0;}
+#nxAdminBot .nxab-in{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;overflow:visible;}
+#nxAdminBot .rb-stage{position:absolute;left:50%;top:0;width:420px;height:490px;margin:0 0 0 -210px;transform:scale(.2);transform-origin:50% 0;transition:transform .25s;}
+#nxAdminBot .rb-glow{display:none;}
+#nxAdminBot:hover .rb-stage{transform:scale(.225);}
 @media (max-width:900px){
   #nxChatSec .cc-rosters{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;}
   #nxChatSec .cc-rosters>.cc-roster{flex:0 0 86%;scroll-snap-align:center;}
@@ -10136,6 +10139,15 @@ html body:has(#adminPage[style*="display: block"]) #pcRoot[hidden]{display:block
   function adminOn(){ var a=document.getElementById('adminPage'); return !!a&&getComputedStyle(a).display!=='none'; }
   /* keep trying to put the bot picture on the corner button (in case the bot was not ready yet) */
   setInterval(function(){ try{ var h=document.getElementById('pcFabBot'); if(!h||h.firstChild) return; var rig=document.getElementById('rxRig'); if(!rig||!rig.firstChild) return; var st=document.createElement('div'); st.className='rb-stage'; st.innerHTML='<div class="rb-float rx3"></div>'; var c=rig.cloneNode(true); c.removeAttribute('id'); st.firstChild.appendChild(c); h.appendChild(st); }catch(e){} },1500);
+  /* admin: own corner bot button (works even when no user is logged in) */
+  var ab=document.createElement('button'); ab.type='button'; ab.id='nxAdminBot'; ab.setAttribute('aria-label','Chat'); ab.innerHTML='<span class="nxab-in"></span>'; document.body.appendChild(ab);
+  function abMount(){ var h=ab.firstChild; if(!h||h.firstChild) return; var rig=document.getElementById('rxRig'); if(!rig||!rig.firstChild) return; var st=document.createElement('div'); st.className='rb-stage'; st.innerHTML='<div class="rb-float rx3"></div>'; var c=rig.cloneNode(true); c.removeAttribute('id'); st.firstChild.appendChild(c); h.appendChild(st); }
+  setInterval(function(){ var on=adminOn(); ab.style.display=on?'block':'none'; var pr=document.getElementById('pcRoot'); if(pr){ if(on) pr.style.setProperty('display','none','important'); else pr.style.removeProperty('display'); } if(on) abMount(); },500);
+  ab.addEventListener('click',function(){
+    if(typeof window.vkToggleChat==='function') window.vkToggleChat();
+    var g=document.getElementById('ccGrid');
+    if(g&&g.classList.contains('vk-open')){ var s=document.getElementById('nxChatSec'); try{ if(s) s.scrollIntoView({behavior:'smooth',block:'start'}); }catch(_){} }
+  });
   /* admin: tap the small bot -> open the 3 tables; tap again -> close */
   f.addEventListener('click',function(e){
     if(!adminOn()) return;
