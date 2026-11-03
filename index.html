@@ -10516,6 +10516,11 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #dcOverlay:has(#dcFormHost.slip) .dc-hd::before{content:"CUSTOMER";color:var(--cu-yl);font:800 14px/20px 'Inter',system-ui,sans-serif;letter-spacing:3px;}
 #dcOverlay:has(#dcFormHost.slip) .dc-hd::after{content:"PORTAL";color:#fff;font:800 14px/20px 'Inter',system-ui,sans-serif;letter-spacing:3px;}
 #dcOverlay:has(#dcFormHost.slip) #dcMsgs{margin-top:72px;}
+/* customer chat box tweaks: no delete link, bigger title, CUSTOMER in the Submit button orange */
+#dcOverlay:has(#dcFormHost.slip) .dc-m small a.dc-del{display:none!important;}
+#dcOverlay:has(#dcFormHost.slip) .dc-pane:first-child .dc-hd{top:27px;height:26px;}
+#dcOverlay:has(#dcFormHost.slip) .dc-hd::before{content:"CUSTOMER";font:800 20px/26px 'Inter',system-ui,sans-serif;letter-spacing:3px;color:#ff7a1e;background:linear-gradient(135deg,#ff8a1e,#ff5a1f);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+#dcOverlay:has(#dcFormHost.slip) .dc-hd::after{content:"PORTAL";font:800 20px/26px 'Inter',system-ui,sans-serif;letter-spacing:3px;color:#fff;}
 </style>
 
 </body>
