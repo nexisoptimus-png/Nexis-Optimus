@@ -3113,11 +3113,13 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
   var RX_IMG=/^data:image\/(?:jpeg|png|webp|gif);base64,[A-Za-z0-9+\/=]+$/, RX_AUD=/^data:audio\/[a-z0-9.+-]+(?:;[a-z0-9=.\-]+)*;base64,[A-Za-z0-9+\/=]+$/i;
   function rich(t){
     t=String(t==null?'':t);
+    if(t==='[slipst]verified') return '<b style="color:#39ff88;font-weight:800">Verified</b>';
+    if(t==='[slipst]rejected') return '<b style="color:#ff3355;font-weight:800">Rejected</b>';
     if(t.indexOf('[img]')===0&&RX_IMG.test(t.slice(5))) return '<img class="cc-pic" alt="photo" src="'+t.slice(5)+'">';
     if(t.indexOf('[voice]')===0&&RX_AUD.test(t.slice(7))) return '<audio class="cc-aud" controls preload="metadata" src="'+t.slice(7)+'"></audio>';
     return esc(t);
   }
-  function pv(t){ t=String(t==null?'':t); if(t.indexOf('[img]')===0) return '📷 Photo'; if(t.indexOf('[voice]')===0) return '🎤 Voice message'; return t; }
+  function pv(t){ t=String(t==null?'':t); if(t==='[slipst]verified') return 'Slip verified'; if(t==='[slipst]rejected') return 'Slip rejected'; if(t.indexOf('[img]')===0) return '📷 Photo'; if(t.indexOf('[voice]')===0) return '🎤 Voice message'; return t; }
   function note(m){ var s=$('tcStatus'); if(!s) return; s.textContent=m; setTimeout(function(){ if(s.textContent===m) s.textContent=''; },2500); }
   /* emoji */
   var EMO='😀 😁 😂 🤣 😊 😍 😘 😎 🤩 🥳 😇 🙂 😉 😅 😭 😢 😡 🤔 🙄 😴 👍 👎 👌 🙏 👏 💪 🤝 👋 ✅ ❌ ⚠️ ⏳ 📍 📦 🧾 🎁 💰 💎 ⛏️ 🔥 ⭐ 🎉 ❤️ 💙 💯 🚀 📸 🎤'.split(' ');
@@ -7972,6 +7974,8 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
   function rich(t){
     t=String(t==null?'':t);
     if(t.indexOf('[entry]')===0){ var eh=entryHtml(t); if(eh) return eh; }
+    if(t==='[slipst]verified') return '<b style="color:#39ff88;font-weight:800;letter-spacing:.5px">Verified</b>';
+    if(t==='[slipst]rejected') return '<b style="color:#ff3355;font-weight:800;letter-spacing:.5px">Rejected</b>';
     var lm=t.indexOf('[loc]')===0&&/^(-?\d{1,3}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/.exec(t.slice(5));
     if(lm) return '<div class="pc-ent"><b class="pc-eh">\uD83D\uDCCD Current location</b>'+mapHtml(lm[1],lm[2])+'</div>';
     if(t.indexOf('[img]data:image/')===0&&/^data:image\/[a-z]+;base64,[A-Za-z0-9+\/=]+$/.test(t.slice(5))) return '<img alt="photo" src="'+t.slice(5)+'">';
@@ -8068,7 +8072,7 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
     window.addEventListener('resize',function(){ var r=f.getBoundingClientRect(); if(f.style.left) put(r.left,r.top); });
   })();
   $('pcFab').addEventListener('click',function(){ try{ if(window.Notification&&Notification.permission==='default') Notification.requestPermission(); }catch(e){} });
-  function prev(t){ t=String(t||''); return t.indexOf('[img]')===0?'📷 Photo':t.indexOf('[voice]')===0?'🎤 Voice message':t.slice(0,60); }
+  function prev(t){ t=String(t||''); if(t==='[slipst]verified') return 'Slip verified'; if(t==='[slipst]rejected') return 'Slip rejected'; return t.indexOf('[img]')===0?'📷 Photo':t.indexOf('[voice]')===0?'🎤 Voice message':t.slice(0,60); }
   function inbox(){
     if(!me()) return;
     rpc('chatInbox',[me(),since],function(r){
@@ -10079,7 +10083,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
       if(D.peer!==p||!r||!r.msgs) return;
       D.seen=D.seen||{};
       r.msgs.slice().sort(function(a,b){ return (a.t||0)-(b.t||0); }).forEach(function(m){
-        var k=m.t+'|'+m.from+'|'+m.text; if(D.seen[k]) return; D.seen[k]=1; if(m.t>D.since) D.since=m.t; if(m.from===me()&&(String(m.text).indexOf('[entry]')===0||(window._nxSlipTxt&&m.text===window._nxSlipTxt))) return;
+        var k=m.t+'|'+m.from+'|'+m.text; if(D.seen[k]) return; D.seen[k]=1; if(m.t>D.since) D.since=m.t; if(m.from===me()&&(String(m.text).indexOf('[entry]')===0||(window._nxSlipTxt&&m.text===window._nxSlipTxt)||String(m.text).indexOf('[slipst]')===0)) return;
         var x=add(String(m.text==null?'':m.text),m.from===me()); var t=document.createElement('small'); t.textContent=new Date(m.t).toTimeString().slice(0,5); x.box.appendChild(t);
           if(m.from===me()){ var dl=document.createElement('a'); dl.className='dc-del'; dl.textContent='✕ delete'; dl.onclick=function(){ delMsg(x.box,m.t); }; t.appendChild(dl); } });
     };
@@ -10142,7 +10146,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     var fh=$('dcFormHost'); fh.classList.add('slip'); window._dcSlip=true;
     var css='<style>header.top,.hero,#rules,.scan{display:none!important}.arena{padding-top:14px!important}</style>';
     var fr=document.createElement('iframe');
-    fr.srcdoc=NX_SLIP_HTML.replace("window.google = { script: { get run()","window.google = parent.google; window.__mock = { script: { get run()").replace("String('' || '')","String('"+m+"' || '')").replace("const data = (await shrink($('file').files[0])).split(',')[1];","const data = (await shrink($('file').files[0])).split(',')[1]; try{ if(parent.nxSlipChat) parent.nxSlipChat(data); }catch(_){}").replace('</head>',css+'</head>');
+    fr.srcdoc=NX_SLIP_HTML.replace("window.google = { script: { get run()","window.google = parent.google; window.__mock = { script: { get run()").replace("String('' || '')","String('"+m+"' || '')").replace("const data = (await shrink($('file').files[0])).split(',')[1];","const data = (await shrink($('file').files[0])).split(',')[1]; try{ if(parent.nxSlipChat) parent.nxSlipChat(data); }catch(_){}").replace("if (r.ok) {","try{ if(parent.nxSlipResult) parent.nxSlipResult(!!r.ok); }catch(_){} if (r.ok) {").replace('</head>',css+'</head>');
     fh.appendChild(fr);
   }
   /* customer slip -> preview card in the owner chat + automatic "checking" message */
@@ -10156,7 +10160,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     var sm=document.createElement('small'); sm.textContent=tm(); c.appendChild(h); c.appendChild(im); c.appendChild(sm);
     var box=$('dcMsgs'); box.appendChild(c); box.scrollTop=box.scrollHeight;
     try{   /* also send the slip to the owner's chat as a photo message */
-      var peer=D.peer;
+      var peer=D.peer; window._nxSlipP=null;
       if(peer && glHasGAS()){
         var im2=new Image();
         im2.onload=function(){
@@ -10168,7 +10172,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
           }
           if(d.length>42000) return;
           window._nxSlipTxt='[img]'+d;   /* so the customer's own chat does not show the slip twice */
-          glCall('chatSend',[me(),peer,window._nxSlipTxt]).catch(function(){});
+          window._nxSlipP=glCall('chatSend',[me(),peer,window._nxSlipTxt]).catch(function(){});
         };
         im2.src=src;
       }
@@ -10177,6 +10181,15 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
       var a=document.createElement('div'); a.className='dc-m'; a.textContent='WE ARE CHECKING YOUR DEPOSIT SLIP. PLEASE WAIT, IT WILL TAKE FEW TIMES.';
       var t2=document.createElement('small'); t2.textContent=tm(); a.appendChild(t2); box.appendChild(a); box.scrollTop=box.scrollHeight;
     },700);
+  };
+  /* slip result -> small status message under the slip in the owner chat: Verified (green) / Rejected (red) */
+  window.nxSlipResult=function(ok){
+    try{
+      var peer=D.peer; if(!peer||!glHasGAS()) return;
+      var txt='[slipst]'+(ok?'verified':'rejected');
+      window._nxSlipSt=txt;
+      Promise.resolve(window._nxSlipP).then(function(){ setTimeout(function(){ glCall('chatSend',[me(),peer,txt]).catch(function(){}); },400); });
+    }catch(_){}
   };
   var _csp=window.closeSlipPreview; window.closeSlipPreview=function(){ if(_csp) _csp(); if(window._dcSlip) window.dcClose(); };
   window.dcOpen=function(mode){
