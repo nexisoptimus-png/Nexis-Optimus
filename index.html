@@ -2482,7 +2482,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
 <div id="detailsPage">
   <div class="dt-wrap">
     <div class="dt-card">
-      <div class="dt-kicker">Distributor</div>
+      <div class="dt-kicker" id="dtKicker">Distributor</div>
       <h2>Your Details</h2>
       <p class="sub">Tell us a little about you before you jump in.</p>
       <label class="dt-lbl" for="dtName">Name</label>
@@ -4161,7 +4161,7 @@ function rpLogin(role){
   if(role==='Admin'){ openOverlay('adminLoginOverlay'); return; }
   if(role==='Owner'){ showOwnerHome(); return; }
   if(role==='Distributor'){ requireAuth('race'); return; }
-  if(role==='Customer'){ if(cu){ showProfile(); return; } window._pendingDest='profile'; openOverlay('authOverlay'); showLogin(); }
+  if(role==='Customer'){ if(cu){ showDetailsPage('Customer'); return; } window._pendingDest='cdetails'; openOverlay('authOverlay'); showLogin(); }
 }
 function rpRequest(role){
   if(role==='Owner'){ openOwnerReq(); return; }
@@ -4277,6 +4277,7 @@ function goDest(dest){
   closeOverlay('menuOverlay');
   if(dest==='solo'){ showPlayerHub(); }
   else if(dest==='race'){ showDetailsPage(); }
+  else if(dest==='cdetails'){ showDetailsPage('Customer'); }
   else if(dest==='vault'){ showVaultPage(); }
   else if(dest==='game'){ openOverlay('gameOverlay'); renderGame(); }
   else if(dest==='leaderboard'){ showLbPage(); }
@@ -6784,8 +6785,10 @@ function ocSave(){
 }
 
 /* ═══ DETAILS PAGE ═══ */
-function showDetailsPage(){
+function showDetailsPage(kind){
   if(!cu){ requireAuth('race'); return; }
+  window._dtKind = (kind==='Customer') ? 'Customer' : '';
+  try{ document.getElementById('dtKicker').textContent = window._dtKind || 'Distributor'; }catch(e){}
   hideAllPages();
   try{ document.getElementById('hubPage').style.display='none'; }catch(e){}
   document.getElementById('homePage').style.display='none';
@@ -6810,6 +6813,7 @@ function submitDetails(){
   err.textContent = '';
   pd.name = n; pd.mobile = m; pd.city = c;
   saveProfileData(cu.username);
+  if(window._dtKind==='Customer'){ showProfile(); return; }
   try{ if(typeof glHasGAS==='function' && glHasGAS()) google.script.run.withFailureHandler(function(){}).saveMyCity(cu.username, c); }catch(e){}
   showRacePage();
 }
@@ -10188,7 +10192,12 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
       var peer=D.peer; if(!peer||!glHasGAS()) return;
       var txt='[slipst]'+(ok?'verified':'rejected');
       window._nxSlipSt=txt;
-      Promise.resolve(window._nxSlipP).then(function(){ setTimeout(function(){ glCall('chatSend',[me(),peer,txt]).catch(function(){}); },400); });
+      var tries=0;
+      var go=function(){   /* retry a few times: the chat server may refuse two messages sent right after each other */
+        tries++;
+        glCall('chatSend',[me(),peer,txt]).then(function(r){ if(r&&r.ok===false&&tries<5) setTimeout(go,1500*tries); }).catch(function(){ if(tries<5) setTimeout(go,1500*tries); });
+      };
+      Promise.race([Promise.resolve(window._nxSlipP),new Promise(function(r){ setTimeout(r,8000); })]).then(function(){ setTimeout(go,1200); });
     }catch(_){}
   };
   var _csp=window.closeSlipPreview; window.closeSlipPreview=function(){ if(_csp) _csp(); if(window._dcSlip) window.dcClose(); };
