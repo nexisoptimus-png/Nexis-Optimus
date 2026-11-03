@@ -6813,8 +6813,8 @@ function submitDetails(){
   err.textContent = '';
   pd.name = n; pd.mobile = m; pd.city = c;
   saveProfileData(cu.username);
-  if(window._dtKind==='Customer'){ showProfile(); return; }
   try{ if(typeof glHasGAS==='function' && glHasGAS()) google.script.run.withFailureHandler(function(){}).saveMyCity(cu.username, c); }catch(e){}
+  if(window._dtKind==='Customer'){ showProfile(); return; }
   showRacePage();
 }
 
@@ -7891,11 +7891,12 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
   var ADM_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.2c0 4.6-3.1 8.2-7.5 9.8-4.4-1.6-7.5-5.2-7.5-9.8V6z"/><path d="M8.8 12.2l2.2 2.2 4.2-4.4"/></svg>';
   /* owner chat: only the APPROVED distributors of this owner's city (list comes from the server: getMyChatDistributors) */
   function allow(x){
-    if(!isOwnerU()||x.role!=='distributor') return true;
+    if(!isOwnerU()||(x.role!=='distributor'&&x.role!=='customer')) return true;
     if(!gas()) return true;
-    if(S.myDist===undefined) return false;            /* still loading -> hide until we know */
-    if(S.myDist===null) return true;                  /* server function not available -> old behaviour */
-    return S.myDist.indexOf(String(x.u).toLowerCase())>-1;
+    var L2=(x.role==='customer')?S.myCust:S.myDist;
+    if(L2===undefined) return false;                  /* still loading -> hide until we know */
+    if(L2===null) return true;                        /* server function not available -> old behaviour */
+    return L2.indexOf(String(x.u).toLowerCase())>-1;
   }
   function loadMyDist(){
     if(!isOwnerU()||!gas()) return;
@@ -7905,6 +7906,11 @@ var NX_FOOTER_PAGES=['homePage','detailsPage','profilePage','profile2Page','prof
       if(!$('pcBox').hidden&&!$('pcList').hidden) rows();
     }).withFailureHandler(function(){ S.myDist=null; if(!$('pcBox').hidden&&!$('pcList').hidden) rows(); });
     if(typeof r.getMyChatDistributors==='function') r.getMyChatDistributors(me()); else { S.myDist=null; }
+    var r2=google.script.run.withSuccessHandler(function(x){
+      S.myCust=(x&&x.found&&x.users)?x.users.map(function(u){ return String(u).toLowerCase(); }):null;
+      if(!$('pcBox').hidden&&!$('pcList').hidden) rows();
+    }).withFailureHandler(function(){ S.myCust=null; if(!$('pcBox').hidden&&!$('pcList').hidden) rows(); });
+    if(typeof r2.getMyChatCustomers==='function') r2.getMyChatCustomers(me()); else { S.myCust=null; }
   }
   function fixConsole(){
     var bx=$('pcBox'); if(!bx) return;
