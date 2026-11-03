@@ -10548,6 +10548,11 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 /* v6: admin chat skull in the very top-left corner of the box */
 #nxChatSec .cc-conv::before{left:8px!important;top:6px!important;}
 #nxChatSec .cc-conv::after{top:18px!important;}
+/* v7: admin comms box = the right-hand column: skull top-left + ADMIN PORTAL beside it */
+#nxChatSec .ccx-conv::before,#nxChatSec .ccx-conv::after{display:none!important;}
+#nxChatSec .cc-roster:has(#ccXCards){position:relative;padding-top:66px;}
+#nxChatSec .cc-roster:has(#ccXCards)::before{content:"";position:absolute;left:12px;top:8px;width:42px;height:48px;z-index:6;pointer-events:none;background:var(--nx-skull-logo) center/contain no-repeat;filter:drop-shadow(0 0 7px rgba(255,122,20,.5));}
+#nxChatSec .cc-roster:has(#ccXCards)::after{content:"ADMIN PORTAL";position:absolute;left:62px;top:18px;z-index:6;pointer-events:none;white-space:nowrap;font:800 20px/26px 'Inter',system-ui,sans-serif;letter-spacing:3px;color:transparent;background:linear-gradient(90deg,#ff8a1e 0,#ff5a1f 89px,#fff 89px,#fff 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;width:auto;height:auto;}
 </style>
 
 </body>
