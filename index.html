@@ -10400,6 +10400,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     }else{
       body='<div class="ccx-card" style="--c:#00f0ff"><small>CUSTOMERS</small><b>'+(cn==null?'\u2014':esc(cn))+'</b>'+(cs&&cs.length?plist(cs,'customer'):'<div class="ccx-na">'+(cn==null?'The server does not send customers per city yet.':'No customers yet.')+'</div>')+'</div>';
     }
+    if(cardTab==='owner') body='';
     cards('<div class="cc-tabs" style="flex:none;padding:0 0 12px">'+tabs.map(function(t){
       return '<button type="button" class="cc-tab'+(t[0]===cardTab?' on':'')+'" data-t="'+t[0]+'" style="--rc:'+t[2]+'">'+t[1]+'<span class="cc-tn">'+esc(t[3])+'</span></button>';
     }).join('')+'</div>'+body);
@@ -10553,6 +10554,13 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #nxChatSec .cc-roster:has(#ccXCards){position:relative;padding-top:66px;}
 #nxChatSec .cc-roster:has(#ccXCards)::before{content:"";position:absolute;left:12px;top:8px;width:42px;height:48px;z-index:6;pointer-events:none;background:var(--nx-skull-logo) center/contain no-repeat;filter:drop-shadow(0 0 7px rgba(255,122,20,.5));}
 #nxChatSec .cc-roster:has(#ccXCards)::after{content:"ADMIN PORTAL";position:absolute;left:62px;top:18px;z-index:6;pointer-events:none;white-space:nowrap;font:800 20px/26px 'Inter',system-ui,sans-serif;letter-spacing:3px;color:transparent;background:linear-gradient(90deg,#ff8a1e 0,#ff5a1f 89px,#fff 89px,#fff 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;width:auto;height:auto;}
+/* v8: ADMIN PORTAL + skull above the city list; owner tab opens chat directly (no owner card, no chat header) */
+#nxChatSec .cc-roster:has(#ccXCards){padding-top:0;}
+#nxChatSec .cc-roster:has(#ccXCards)::before,#nxChatSec .cc-roster:has(#ccXCards)::after{content:none!important;display:none!important;}
+#nxChatSec .cc-roster:has(#ccXCities){position:relative;padding-top:66px;}
+#nxChatSec .cc-roster:has(#ccXCities)::before{content:"";position:absolute;left:12px;top:8px;width:42px;height:48px;z-index:6;pointer-events:none;background:var(--nx-skull-logo) center/contain no-repeat;filter:drop-shadow(0 0 7px rgba(255,122,20,.5));}
+#nxChatSec .cc-roster:has(#ccXCities)::after{content:"ADMIN PORTAL";position:absolute;left:62px;top:18px;z-index:6;pointer-events:none;white-space:nowrap;font:800 20px/26px 'Inter',system-ui,sans-serif;letter-spacing:3px;color:transparent;background:linear-gradient(90deg,#ff8a1e 0,#ff5a1f 89px,#fff 89px,#fff 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;width:auto;height:auto;}
+#nxChatSec .ccx-conv .cc-top{display:none!important;}
 </style>
 
 </body>
