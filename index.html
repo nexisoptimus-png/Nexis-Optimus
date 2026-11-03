@@ -10528,6 +10528,17 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #dcOverlay:not(:has(#dcFormHost.slip)) .dc-hd::before{content:"DISTRIBUTOR";font:800 20px/26px 'Inter',system-ui,sans-serif;letter-spacing:3px;color:#ff7a1e;background:linear-gradient(135deg,#ff8a1e,#ff5a1f);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 #dcOverlay:not(:has(#dcFormHost.slip)) .dc-hd::after{content:"PORTAL";font:800 20px/26px 'Inter',system-ui,sans-serif;letter-spacing:3px;color:#fff;}
 #dcOverlay:not(:has(#dcFormHost.slip)) #dcMsgs{margin-top:72px;}
+/* v4: hide delete links in distributor chat too */
+#dcOverlay .dc-m small a.dc-del{display:none!important;}
+/* owner chat: OWNER (Save-button orange) + PORTAL (white), 20px */
+#pcBox .pc-scene .pc-prof::after{content:"OWNER PORTAL";font:800 20px/1 'Inter',system-ui,sans-serif;letter-spacing:3px;color:transparent;background:linear-gradient(90deg,#ff8a1e 0,#ff5a1f 95px,#fff 95px,#fff 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+/* admin chat box: a bit shorter, skull top-left + ADMIN PORTAL label */
+#nxChatSec .cc-rosters{height:590px!important;}
+#nxChatSec .cc-grid.open .cc-conv{height:590px!important;}
+#nxChatSec .cc-conv{position:relative!important;}
+#nxChatSec .cc-conv::before{content:""!important;display:block!important;position:absolute;left:18px;top:12px;width:42px;height:48px;z-index:6;pointer-events:none;background:var(--nx-skull-logo) center/contain no-repeat;filter:drop-shadow(0 0 7px rgba(255,122,20,.5));}
+#nxChatSec .cc-conv::after{content:"ADMIN PORTAL"!important;display:block!important;position:absolute;left:70px;top:24px;z-index:6;pointer-events:none;font:800 20px/26px 'Inter',system-ui,sans-serif;letter-spacing:3px;color:transparent;background:linear-gradient(90deg,#ff8a1e 0,#ff5a1f 89px,#fff 89px,#fff 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;width:auto;height:auto;}
+#nxChatSec .cc-conv .cc-top{margin-top:64px;}
 </style>
 
 </body>
