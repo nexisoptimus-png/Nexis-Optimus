@@ -10563,6 +10563,15 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #nxChatSec .ccx-conv .cc-top{display:none!important;}
 /* v9: owner title at the very top (same height as distributor title) */
 #pcBox .pc-scene .pc-prof::after{top:11px!important;}
+/* v10: chat scrollbars = progress-bar neon orange (all 4 chat boxes); distributor form scrollbar hidden; owner box same size as customer/distributor */
+#dcMsgs,#pcMsgs,#tcMsgs,#nxChatSec .cc-msgs{scrollbar-width:auto!important;scrollbar-color:auto!important;}
+#dcMsgs::-webkit-scrollbar,#pcMsgs::-webkit-scrollbar,#tcMsgs::-webkit-scrollbar,#nxChatSec .cc-msgs::-webkit-scrollbar{width:6px!important;display:block;}
+#dcMsgs::-webkit-scrollbar-track,#pcMsgs::-webkit-scrollbar-track,#tcMsgs::-webkit-scrollbar-track,#nxChatSec .cc-msgs::-webkit-scrollbar-track{background:rgba(255,255,255,.04)!important;border-radius:6px;}
+#dcMsgs::-webkit-scrollbar-thumb,#pcMsgs::-webkit-scrollbar-thumb,#tcMsgs::-webkit-scrollbar-thumb,#nxChatSec .cc-msgs::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#ff8a1e,#ff5a1f)!important;border-radius:6px;box-shadow:0 0 8px rgba(255,110,20,.75);}
+#dcMsgs::-webkit-scrollbar-button,#pcMsgs::-webkit-scrollbar-button,#tcMsgs::-webkit-scrollbar-button,#nxChatSec .cc-msgs::-webkit-scrollbar-button{display:none!important;width:0;height:0;}
+#dcOverlay .dc-pane+.dc-pane,#dcOverlay .dc-pane+.dc-pane *{scrollbar-width:none!important;-ms-overflow-style:none;}
+#dcOverlay .dc-pane+.dc-pane::-webkit-scrollbar,#dcOverlay .dc-pane+.dc-pane *::-webkit-scrollbar{display:none!important;width:0!important;height:0!important;}
+#pcBox{height:min(700px,calc(100vh - 28px))!important;}
 </style>
 
 </body>
