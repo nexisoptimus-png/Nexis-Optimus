@@ -10137,7 +10137,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
   function dcSlipMount(){
     var m=(cu&&cu.mobile)?String(cu.mobile).replace(/\D/g,''):'';
     var fh=$('dcFormHost'); fh.classList.add('slip'); window._dcSlip=true;
-    var css='<style>header.top,.hero,#rules,.scan{display:none!important}.arena{padding-top:14px!important}.bg{display:none!important}html,body{background:transparent!important}.console{background:transparent!important;border:0!important;box-shadow:none!important;clip-path:none!important;padding-top:20px!important}.console::before{display:none!important}.field{background:rgba(255,255,255,.03)!important}</style>';
+    var css='<style>header.top,.hero,#rules,.scan{display:none!important}.arena{padding-top:14px!important}:root{color-scheme:dark!important}.bg{display:none!important}html,body{background:transparent!important}.console{background:transparent!important;border:0!important;box-shadow:none!important;clip-path:none!important;padding-top:20px!important}.console::before{display:none!important}.field{background:rgba(255,255,255,.03)!important}</style>';
     var fr=document.createElement('iframe');
     fr.srcdoc=NX_SLIP_HTML.replace("window.google = { script: { get run()","window.google = parent.google; window.__mock = { script: { get run()").replace("String('' || '')","String('"+m+"' || '')").replace("const data = (await shrink($('file').files[0])).split(',')[1];","const data = (await shrink($('file').files[0])).split(',')[1]; try{ if(parent.nxSlipChat) parent.nxSlipChat(data); }catch(_){}").replace("if (r.ok) {","try{ if(parent.nxSlipResult) parent.nxSlipResult(!!r.ok); }catch(_){} if (r.ok) {").replace('</head>',css+'</head>');
     fh.appendChild(fr);
@@ -10508,6 +10508,14 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #nxChatSec .cc-conv::before{content:"";position:absolute;left:22px;top:14px;width:42px;height:48px;z-index:4;pointer-events:none;background:var(--nx-skull-logo) center/contain no-repeat;filter:drop-shadow(0 0 7px rgba(255,122,20,.5));}
 #nxChatSec .cc-conv::after{content:"ADMIN PORTAL";position:absolute;left:76px;top:28px;z-index:4;pointer-events:none;color:var(--cu-yl);font:800 14px/20px 'Inter',system-ui,sans-serif;letter-spacing:3px;}
 #nxChatSec .cc-conv .cc-top{margin-top:58px;}
+
+/* customer chat box: remove the orange avatar + "Owner — name / Owner chat"; label = CUSTOMER (yellow) PORTAL (white) */
+#dcOverlay:has(#dcFormHost.slip) .dc-box::after{content:none;}
+#dcOverlay:has(#dcFormHost.slip) .dc-pane:first-child .dc-hd{position:absolute;left:76px;top:30px;z-index:4;display:flex;align-items:center;justify-content:flex-start;gap:10px;height:20px;margin:0;padding:0;border:0;pointer-events:none;}
+#dcOverlay:has(#dcFormHost.slip) .dc-hd>*{display:none;}
+#dcOverlay:has(#dcFormHost.slip) .dc-hd::before{content:"CUSTOMER";color:var(--cu-yl);font:800 14px/20px 'Inter',system-ui,sans-serif;letter-spacing:3px;}
+#dcOverlay:has(#dcFormHost.slip) .dc-hd::after{content:"PORTAL";color:#fff;font:800 14px/20px 'Inter',system-ui,sans-serif;letter-spacing:3px;}
+#dcOverlay:has(#dcFormHost.slip) #dcMsgs{margin-top:72px;}
 </style>
 
 </body>
