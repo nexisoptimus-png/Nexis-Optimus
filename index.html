@@ -4,31 +4,47 @@
 <!-- NEXIS API BRIDGE: lets this GitHub Pages site talk to the SAME Google Sheets backend (Apps Script web app) as the laptop version -->
 <script id="nxApiBridge">
 window.NEXIS_PROFILE_BUILD="v4";
-/* FIX: summary links always use THIS web app's /exec URL (no /u/N/, no old deployment id) so they open with any Google account */
+/* FIX 1: summary links open on the GitHub Pages site itself (?row=N) -> no Apps Script page, no /u/N/ account problem */
+window.nxSiteUrl=function(){
+  var h=location.hostname||'';
+  if(/github\.io$/.test(h)) return location.origin+location.pathname.replace(/index\.html$/,'');
+  return 'https://nexisoptimus-png.github.io/Nexis-Optimus/';
+};
 window.nxSumUrl=function(u){
   u=String(u==null?'':u);
-  if(!/^https:\/\/script\.google\.com\/macros\//.test(u)) return u;
-  var base=window.NEXIS_EXEC_URL||'';
-  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(base)) return u.replace(/\/macros\/u\/\d+\//,'/macros/');
-  var q=u.indexOf('?'), qs=q>-1?u.slice(q):'';
-  return base.replace(/\?.*$/,'')+qs;
+  var m=/^https:\/\/script\.google\.com\/macros\/.*[?&]row=(\d+)/.exec(u);
+  return m ? window.nxSiteUrl()+'?row='+m[1] : u;
 };
-/* FIX: if the voice <audio> cannot load from Drive, swap in Drive's own preview player (same one the distributor history uses) */
+document.addEventListener('click',function(ev){
+  var a=ev.target&&ev.target.closest&&ev.target.closest('a[href*="script.google.com/macros/"]');
+  if(a&&/[?&]row=\d+/.test(a.href)) a.href=window.nxSumUrl(a.href);
+},true);
+/* FIX 2: owner voice note. If Drive's direct link will not play, fetch the audio through the backend (works for any Google account); last resort = Drive preview player */
 window.nxVoiceFB=function(a){
   try{
     var id=a.getAttribute('data-vid'); if(!id||a.getAttribute('data-fb')) return;
     a.setAttribute('data-fb','1');
-    var f=document.createElement('iframe');
-    f.src='https://drive.google.com/file/d/'+id+'/preview';
-    f.title='Voice note'; f.setAttribute('allow','autoplay'); f.setAttribute('loading','lazy');
-    f.style.cssText='display:block;width:100%;height:96px;border:0;border-radius:10px;background:#0a0a0f;';
-    a.parentNode.replaceChild(f,a);
+    function drivePlayer(){
+      try{
+        var f=document.createElement('iframe');
+        f.src='https://drive.google.com/file/d/'+id+'/preview';
+        f.title='Voice note'; f.setAttribute('allow','autoplay'); f.setAttribute('loading','lazy');
+        f.style.cssText='display:block;width:100%;height:96px;border:0;border-radius:10px;background:#0a0a0f;';
+        if(a.parentNode) a.parentNode.replaceChild(f,a);
+      }catch(e){}
+    }
+    google.script.run.withSuccessHandler(function(r){
+      if(r&&r.data){
+        a.onerror=drivePlayer; a.src=r.data; a.load();
+        var p=a.play&&a.play(); if(p&&p.catch) p.catch(function(){});
+      } else drivePlayer();
+    }).withFailureHandler(drivePlayer).getGoodsVoice(id);
   }catch(e){}
 };
+
 (function(){
   /* >>> PASTE YOUR APPS SCRIPT WEB APP URL HERE (ends with /exec) <<< */
   var URL_ = 'https://script.google.com/macros/s/AKfycbx1fXRhReJZmzC7XKPXKZswKLcAdcGPOBva19ma4SBqpaBJH19mza9SPiGU2HP841g/exec';
-  window.NEXIS_EXEC_URL = URL_;
   if(window.google && window.google.script && window.google.script.run) return;      /* already inside Apps Script */
   if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(URL_)) return;           /* not configured yet -> old demo mode */
   function make(ok,fail){
@@ -53,6 +69,29 @@ window.nxVoiceFB=function(a){
     }});
   }
   window.google={script:{run:make(null,null)}};
+})();
+/* FIX 1b: ?row=N on the site shows the entry summary page (public, no Google login needed) */
+(function(){
+  var m=/[?&]row=(\d+)/.exec(location.search); if(!m) return;
+  var row=parseInt(m[1],10);
+  function show(html){
+    var ov=document.createElement('div'); ov.id='nxRowView';
+    ov.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#050507;';
+    var fr=document.createElement('iframe');
+    fr.style.cssText='width:100%;height:100%;border:0;display:block;';
+    fr.srcdoc=html; ov.appendChild(fr); document.body.appendChild(ov);
+  }
+  function msg(t){ show('<body style="margin:0;background:#050507;color:#eee;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center"><div style="padding:24px">'+t+'</div></body>'); }
+  function go(){
+    try{
+      if(typeof GL_PAGE_HTML==='undefined'||!(window.google&&google.script&&google.script.run)) return;
+      google.script.run.withSuccessHandler(function(d){
+        var json=JSON.stringify(d||{}).replace(/</g,'\\u003c');
+        show(GL_PAGE_HTML.replace('__GL_DATA__',function(){ return json; }));
+      }).withFailureHandler(function(){ msg('This entry is not available right now.'); }).getGoodsSummary(row);
+    }catch(_){}
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',go); else go();
 })();
 </script>
 <!-- gsBridge removed: DEMO version (offline, demo data) -->
@@ -4991,7 +5030,7 @@ function acBuild(el,list,mode,show,emptyMsg){
     if(mode==='feed' && AC_MODE==='demo'){ var pp=e.d.split('-'); ttl=AC_MON[+pp[1]-1].slice(0,3)+' '+(+pp[2])+', '+pp[0]; }   /* demo cards: title වෙනුවට date */
     row.innerHTML='<div class="ac-rin"><div class="ac-card"><div class="ac-num">'+acP2(i+1)+'</div><div class="ac-ico">'+(AC_ICO[e.t]||'⚡')+'</div>'
       +'<div class="ac-txt"><strong>'+acEsc(ttl)+'</strong><span><b class="ac-chip">'+(AC_LAB[e.t]||'EVENT')+'</b><em style="font-style:normal">'+acEsc(e.t==='pay'?'Your link':((e.t==='col'||e.t==='mis')?'Customer · location link':(isLoc?'Summary link':e.meta)))+'</em><em style="font-style:normal">'+acEsc(when)+'</em></span></div>'
-      +'<div class="ac-rew">'+(locOk?'<a class="ac-open" href="'+acEsc(e.meta)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+(e.t==='pay'?'Open link':((e.t==='col'||e.t==='mis')?'View':'Summary'))+' ↗</a>':(e.t==='send'?(e.pcs+' pcs'):(e.t==='code'?((e.tag==='CONFIRMED'&&!nxWelcomeDone_(e.ts))?nxwBtn_(e.ts):'<b style="color:'+(e.tag==='CONFIRMED'?'#39ff88':'#ff8a1e')+';font-weight:800;letter-spacing:1px">'+acEsc(e.tag||'SENT')+'</b>'):(coins>0?'+'+coins+' 🪙':'+0'))))+'</div></div></div>';
+      +'<div class="ac-rew">'+(locOk?'<a class="ac-open" href="'+acEsc(window.nxSumUrl(e.meta))+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">'+(e.t==='pay'?'Open link':((e.t==='col'||e.t==='mis')?'View':'Summary'))+' ↗</a>':(e.t==='send'?(e.pcs+' pcs'):(e.t==='code'?((e.tag==='CONFIRMED'&&!nxWelcomeDone_(e.ts))?nxwBtn_(e.ts):'<b style="color:'+(e.tag==='CONFIRMED'?'#39ff88':'#ff8a1e')+';font-weight:800;letter-spacing:1px">'+acEsc(e.tag||'SENT')+'</b>'):(coins>0?'+'+coins+' 🪙':'+0'))))+'</div></div></div>';
     if(mode==='feed'){
       row.classList.add('ac-link'); row.setAttribute('role','button'); row.setAttribute('tabindex','0');
       row.setAttribute('aria-label','Open report for '+e.d);
