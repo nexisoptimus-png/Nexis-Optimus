@@ -10079,7 +10079,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
       if(D.peer!==p||!r||!r.msgs) return;
       D.seen=D.seen||{};
       r.msgs.slice().sort(function(a,b){ return (a.t||0)-(b.t||0); }).forEach(function(m){
-        var k=m.t+'|'+m.from+'|'+m.text; if(D.seen[k]) return; D.seen[k]=1; if(m.t>D.since) D.since=m.t; if(m.from===me()&&String(m.text).indexOf('[entry]')===0) return;
+        var k=m.t+'|'+m.from+'|'+m.text; if(D.seen[k]) return; D.seen[k]=1; if(m.t>D.since) D.since=m.t; if(m.from===me()&&(String(m.text).indexOf('[entry]')===0||(window._nxSlipTxt&&m.text===window._nxSlipTxt))) return;
         var x=add(String(m.text==null?'':m.text),m.from===me()); var t=document.createElement('small'); t.textContent=new Date(m.t).toTimeString().slice(0,5); x.box.appendChild(t);
           if(m.from===me()){ var dl=document.createElement('a'); dl.className='dc-del'; dl.textContent='✕ delete'; dl.onclick=function(){ delMsg(x.box,m.t); }; t.appendChild(dl); } });
     };
@@ -10155,6 +10155,24 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
     var im=document.createElement('img'); im.src=src; im.alt='Deposit slip'; im.style.cssText='display:block;width:230px;max-width:100%;border-radius:10px;border:1px solid rgba(255,255,255,.18);';
     var sm=document.createElement('small'); sm.textContent=tm(); c.appendChild(h); c.appendChild(im); c.appendChild(sm);
     var box=$('dcMsgs'); box.appendChild(c); box.scrollTop=box.scrollHeight;
+    try{   /* also send the slip to the owner's chat as a photo message */
+      var peer=D.peer;
+      if(peer && glHasGAS()){
+        var im2=new Image();
+        im2.onload=function(){
+          var sc=Math.min(1,640/Math.max(im2.width,im2.height)), q=.72, d='', cv=document.createElement('canvas');
+          for(var k=0;k<10;k++){
+            cv.width=Math.max(1,Math.round(im2.width*sc)); cv.height=Math.max(1,Math.round(im2.height*sc));
+            cv.getContext('2d').drawImage(im2,0,0,cv.width,cv.height);
+            d=cv.toDataURL('image/jpeg',q); if(d.length<=42000) break; sc*=.85; q=Math.max(.4,q-.05);
+          }
+          if(d.length>42000) return;
+          window._nxSlipTxt='[img]'+d;   /* so the customer's own chat does not show the slip twice */
+          glCall('chatSend',[me(),peer,window._nxSlipTxt]).catch(function(){});
+        };
+        im2.src=src;
+      }
+    }catch(_){}
     setTimeout(function(){
       var a=document.createElement('div'); a.className='dc-m'; a.textContent='WE ARE CHECKING YOUR DEPOSIT SLIP. PLEASE WAIT, IT WILL TAKE FEW TIMES.';
       var t2=document.createElement('small'); t2.textContent=tm(); a.appendChild(t2); box.appendChild(a); box.scrollTop=box.scrollHeight;
