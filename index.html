@@ -2563,7 +2563,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
         <div class="panel-box quest-panel">
           <div class="pn-wrap">
             <i class="pn-ring r1"></i><i class="pn-ring r2"></i><b class="pn-sp" style="--x:10%;--d:0.0s;--dx:-6px"></b><b class="pn-sp" style="--x:24%;--d:0.7s;--dx:8px"></b><b class="pn-sp" style="--x:38%;--d:1.3s;--dx:-10px"></b><b class="pn-sp" style="--x:52%;--d:0.3s;--dx:6px"></b><b class="pn-sp" style="--x:66%;--d:1.0s;--dx:-8px"></b><b class="pn-sp" style="--x:80%;--d:1.6s;--dx:10px"></b><b class="pn-sp" style="--x:92%;--d:0.5s;--dx:4px"></b>
-            <button class="game-play-btn pn-btn" onclick="openOverlay('playChoiceOverlay')"><span class="pn-ico">⛏</span>&nbsp;&nbsp;PLAY NOW</button>
+            <button class="game-play-btn pn-btn" type="button"><span class="pn-ico">⛏</span>&nbsp;&nbsp;PLAY NOW</button>
           </div>
         </div>
       <button class="full-btn full-btn-ghost pn-logout" onclick="doLogout()">Log Out</button>
@@ -10521,6 +10521,13 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #dcOverlay:has(#dcFormHost.slip) .dc-pane:first-child .dc-hd{top:27px;height:26px;}
 #dcOverlay:has(#dcFormHost.slip) .dc-hd::before{content:"CUSTOMER";font:800 20px/26px 'Inter',system-ui,sans-serif;letter-spacing:3px;color:#ff7a1e;background:linear-gradient(135deg,#ff8a1e,#ff5a1f);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 #dcOverlay:has(#dcFormHost.slip) .dc-hd::after{content:"PORTAL";font:800 20px/26px 'Inter',system-ui,sans-serif;letter-spacing:3px;color:#fff;}
+/* distributor chat box: same header style as customer (no avatar / owner name), DISTRIBUTOR in Save Entry orange, 20px */
+#dcOverlay:not(:has(#dcFormHost.slip)) .dc-box::after{content:none;}
+#dcOverlay:not(:has(#dcFormHost.slip)) .dc-pane:first-child .dc-hd{position:absolute;left:76px;top:27px;z-index:4;display:flex;align-items:center;justify-content:flex-start;gap:10px;height:26px;margin:0;padding:0;border:0;pointer-events:none;}
+#dcOverlay:not(:has(#dcFormHost.slip)) .dc-hd>*{display:none;}
+#dcOverlay:not(:has(#dcFormHost.slip)) .dc-hd::before{content:"DISTRIBUTOR";font:800 20px/26px 'Inter',system-ui,sans-serif;letter-spacing:3px;color:#ff7a1e;background:linear-gradient(135deg,#ff8a1e,#ff5a1f);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+#dcOverlay:not(:has(#dcFormHost.slip)) .dc-hd::after{content:"PORTAL";font:800 20px/26px 'Inter',system-ui,sans-serif;letter-spacing:3px;color:#fff;}
+#dcOverlay:not(:has(#dcFormHost.slip)) #dcMsgs{margin-top:72px;}
 </style>
 
 </body>
