@@ -10463,5 +10463,54 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
   cities(); idle();
 })();
 </script>
+<style id="nxChatUnifyAdmin">
+/* ═══ OWNER / DISTRIBUTOR / CUSTOMER chat boxes = ADMIN chat box design (CSS only, no logic changes):
+       no background colour · full glass view · thin outline · outlined bubbles · pill composer · orange round send ═══ */
+:root{--cu-ol:rgba(255,255,255,.22);--cu-gl:linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.006));
+  --cu-blur:blur(28px) saturate(170%);}
+
+/* 1) the big boxes: transparent glass */
+#pcBox,.dc-box,#mvBox{background:var(--cu-gl)!important;border:1px solid var(--cu-ol)!important;border-radius:24px!important;
+  box-shadow:0 20px 60px rgba(0,0,0,.35)!important;-webkit-backdrop-filter:var(--cu-blur)!important;backdrop-filter:var(--cu-blur)!important;}
+#pcBox .pc-side{background:transparent!important;border-left:1px solid var(--cu-ol)!important;}
+.dc-pane+.dc-pane{border-left:1px solid var(--cu-ol)!important;}
+#dcOverlay{background:rgba(0,0,0,.35)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
+
+
+/* 2) header: centred title, no divider line, round outlined buttons */
+.pc-side .pc-h,.dc-hd{border-bottom:0!important;justify-content:center;text-align:center;}
+.pc-side .pc-h .pc-ht{align-items:center;text-align:center;}
+.pc-side .pc-h #pcTitle{font-size:16px!important;letter-spacing:2px!important;font-weight:800!important;color:#fff!important;}
+.dc-hd b{font-size:16px;letter-spacing:2px;font-weight:800;}
+.dc-x,#mvBox .mv-x{background:transparent!important;border:1px solid var(--cu-ol)!important;color:#fff!important;}
+.dc-x:hover,#mvBox .mv-x:hover{border-color:rgba(255,255,255,.4)!important;}
+
+/* 3) messages: transparent outlined bubbles (same as admin) */
+#pcMsgs,#dcMsgs{background:transparent!important;gap:14px;}
+#pcBox .pc-m,.dc-m:not(.dc-final){background:transparent!important;border:1px solid rgba(255,255,255,.3)!important;color:#e9edf7!important;
+  border-radius:20px!important;border-top-left-radius:6px!important;box-shadow:none!important;font-size:13px;line-height:1.55;letter-spacing:.3px;padding:10px 16px;}
+#pcBox .pc-m.me,.dc-m.me:not(.dc-final){background:transparent!important;border:1px solid rgba(120,170,255,.65)!important;color:#8ec5ff!important;
+  border-radius:20px!important;border-top-right-radius:6px!important;}
+.dc-m small,#pcBox .pc-m small{opacity:.5;}
+#dcMsgs{scrollbar-color:rgba(255,255,255,.25) transparent;}
+#dcMsgs::-webkit-scrollbar-track{background:transparent;}#dcMsgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,.25);}
+
+/* 4) composer: outlined pill, outlined round tool buttons, orange round send arrow */
+.pc-in,.dc-in{margin:10px 20px 20px!important;padding:8px 8px 8px 12px!important;border-top:0!important;border:1px solid var(--cu-ol)!important;
+  border-radius:26px!important;background:transparent!important;gap:6px!important;}
+.pc-in input,.dc-in input{background:transparent!important;border:0!important;box-shadow:none!important;outline:none!important;border-radius:0!important;
+  padding:10px 4px!important;color:#fff;font-size:13px;letter-spacing:.3px;}
+.pc-in #pcEmo,.dc-in .dc-tool:not(.rec){flex:none;width:32px!important;height:32px!important;padding:0;border-radius:50%!important;
+  background:transparent!important;border:1px solid var(--cu-ol)!important;font-size:16px!important;color:#cfd8ee;}
+.pc-in #pcSend,.dc-in #dcSend{position:relative;flex:none;width:40px!important;height:40px!important;padding:0!important;border-radius:50%!important;
+  background:transparent!important;border:1.5px solid #ff8a1e!important;box-shadow:none!important;color:transparent!important;font-size:0!important;}
+.pc-in #pcSend::after,.dc-in #dcSend::after{content:"\2191";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:system-ui,sans-serif;font-size:21px;font-weight:700;color:#ff8a1e;}
+.pc-in #pcSend:hover,.dc-in #dcSend:hover{background:rgba(255,138,30,.12)!important;}
+
+/* 5) emoji pickers: glass */
+#pcEmoP,.dc-emo{background:rgba(12,12,18,.55)!important;border:1px solid var(--cu-ol)!important;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);}
+</style>
+
 </body>
 </html>
