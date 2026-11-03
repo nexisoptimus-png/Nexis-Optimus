@@ -10539,6 +10539,15 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #nxChatSec .cc-conv::before{content:""!important;display:block!important;position:absolute;left:18px;top:12px;width:42px;height:48px;z-index:6;pointer-events:none;background:var(--nx-skull-logo) center/contain no-repeat;filter:drop-shadow(0 0 7px rgba(255,122,20,.5));}
 #nxChatSec .cc-conv::after{content:"ADMIN PORTAL"!important;display:block!important;position:absolute;left:70px;top:24px;z-index:6;pointer-events:none;font:800 20px/26px 'Inter',system-ui,sans-serif;letter-spacing:3px;color:transparent;background:linear-gradient(90deg,#ff8a1e 0,#ff5a1f 89px,#fff 89px,#fff 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;width:auto;height:auto;}
 #nxChatSec .cc-conv .cc-top{margin-top:64px;}
+/* v5: portal titles centred in the left chat panel; admin chat box shorter */
+#pcBox .pc-scene .pc-prof{position:static;}
+#pcBox .pc-scene .pc-prof::after{position:absolute;left:50%;top:42px;transform:translateX(-50%);white-space:nowrap;}
+#nxChatSec .cc-conv::after{left:50%!important;transform:translateX(-50%);white-space:nowrap;}
+#nxChatSec .cc-rosters{height:530px!important;}
+#nxChatSec .cc-grid.open .cc-conv{height:530px!important;}
+/* v6: admin chat skull in the very top-left corner of the box */
+#nxChatSec .cc-conv::before{left:8px!important;top:6px!important;}
+#nxChatSec .cc-conv::after{top:18px!important;}
 </style>
 
 </body>
