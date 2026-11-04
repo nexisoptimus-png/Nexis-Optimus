@@ -10588,6 +10588,43 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #cityPage .dx-tag{background:var(--u-gl) !important;border:1px solid var(--u-ol) !important;border-radius:var(--u-rb) !important;color:#fff !important;font-family:'Inter',sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;text-transform:uppercase;padding:9px 16px;transition:transform .2s,border-color .2s;}
 #cityPage .dx-tag:hover{border-color:var(--u-ol-hi) !important;transform:translateY(-2px);}
 #cityPage .dx-title{color:var(--rq) !important;font-size:clamp(40px,8vw,84px) !important;}
+/* City Select: "YOUR CITY" white, blinking dot green */
+#cityPage .dx-title span{background:none !important;-webkit-text-fill-color:#fff !important;color:#fff !important;}
+#cityPage .dx-tag i{background:#39ff88 !important;box-shadow:0 0 8px #39ff88;}
+/* City Control page: no neon - only white + Exit-Admin orange (var(--rq)) */
+#cityDetPage{--ac:var(--rq);}
+#cityDetPage .cd-hero{background:#09090c !important;border:1px solid rgba(255,255,255,.18) !important;box-shadow:none !important;}
+#cityDetPage .dx-tag{color:#fff !important;border-color:rgba(255,255,255,.3) !important;text-shadow:none !important;}
+#cityDetPage .dx-tag i{background:var(--rq) !important;box-shadow:none !important;}
+#cityDetPage .cd-rank{--rc:var(--rq);text-shadow:none !important;box-shadow:none !important;}
+#cityDetPage .cd-xp i{background:var(--rq) !important;box-shadow:none !important;}
+#cityDetPage .cd-name.typing::after{box-shadow:none !important;}
+#cityDetPage .ow-tag{color:#fff !important;border-color:rgba(255,255,255,.3) !important;text-shadow:none !important;}
+#cityDetPage .ow-stage{--oc:var(--rq);}
+#cityDetPage .ow-stage::before{background:conic-gradient(from 0deg,var(--rq),#fff,var(--rq)) !important;filter:none !important;}
+#cityDetPage .ow-photo{box-shadow:none !important;}
+#cityDetPage .ow-dot{background:var(--rq) !important;box-shadow:none !important;}
+#cityDetPage .ow-name{text-shadow:none !important;}
+#cityDetPage .ow-role{color:var(--rq) !important;border-color:rgba(255,122,20,.5) !important;background:rgba(255,122,20,.08) !important;}
+#cityDetPage .ow-card{border:1px solid rgba(255,255,255,.14) !important;box-shadow:none !important;}
+#cityDetPage .ow-card h3{color:var(--rq) !important;}
+#cityDetPage .ow-grid b,#cityDetPage .ow-grid b.g,#cityDetPage .ow-grid b.r,#cityDetPage .ow-grid b.c{color:#fff !important;}
+#cityDetPage .tg{--tc:#fff;box-shadow:none !important;}
+#cityDetPage .tg.on{--tc:var(--rq);animation:none !important;box-shadow:none !important;}
+#cityDetPage .tg::after{box-shadow:none !important;}
+#cityDetPage .ow-check{filter:none !important;animation:none !important;}
+#cityDetPage .ow-checkbtn{background:var(--rq) !important;color:#fff !important;}
+#cityDetPage .ow-checkbtn:hover{background:#ff9a3d !important;}
+#cityDetPage .ow-checkbtn:focus-visible{outline-color:var(--rq);}
+#cityDetPage .ow-empty{border-color:rgba(255,255,255,.25) !important;background:rgba(255,255,255,.03) !important;}
+#cityDetPage .ow-empty em{color:var(--rq) !important;}
+#cityDetPage .ow-load i,#cityDetPage .ow-load i:nth-child(2),#cityDetPage .ow-load i:nth-child(3){background:var(--rq) !important;box-shadow:none !important;}
+#cityDetPage .ow-load i:nth-child(2){background:#fff !important;}
+#cityDetPage .orq-card{border-color:rgba(255,255,255,.18) !important;}
+#cityDetPage .orq-ok{background:var(--rq) !important;color:#fff !important;box-shadow:none !important;}
+#cityDetPage .orq-no{border-color:rgba(255,255,255,.4) !important;color:#fff !important;}
+#cityDetPage .ow-fix{background:rgba(255,122,20,.06) !important;border-color:rgba(255,122,20,.35) !important;}
+#cityDetPage .ow-fix b{color:var(--rq) !important;}
 </style>
 </body>
 </html>
