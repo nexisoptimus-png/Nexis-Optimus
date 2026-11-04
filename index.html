@@ -3485,7 +3485,8 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
       <h1 class="ow-name" id="ppName"></h1>
       <div class="ow-role" id="ppRole"></div>
     </div>
-    <div class="pp-card"><ul class="ow-grid" id="ppGrid"></ul></div>
+    <div class="pp-card" id="ppCard"><ul class="ow-grid" id="ppGrid"></ul></div>
+    <div id="ppCards" hidden></div>
   </div>
 </div>
 
@@ -6238,8 +6239,13 @@ function openOwnerProfile(){
    Data comes from getCityOwner(): owner{}, dist[] {id,name,mobile,city,joined,loc,col,mis}, customers[] {id,name,username,mobile,city,joined}. */
 var _ol={kind:'dist',items:[]};
 function opCustList(r){ return Array.isArray(r.customers)?r.customers:(r.sample?ctyData(r.owner.city):[]); }
+var _ppRet=null;
+function olBuild(r,kind){
+  var isD=(kind==='dist'), raw=kind==='owner'?[r.owner]:isD?(r.dist||[]):opCustList(r);
+  return raw.map(function(x,i){ return {name:String(x.name||x.n||'—'), id:String(x.id||((isD?'DST-':'CUS-')+('000'+(i+1)).slice(-4))), x:x}; });
+}
 function openOwnerList(kind){
-  var r=_cdOwner; if(!r) return; _ol.kind=kind;
+  var r=_cdOwner; if(!r) return; _ol.kind=kind; _ppRet=null;
   var isO=(kind==='owner'), isD=(kind==='dist'), label=isO?'Owner':isD?'Distributors':'Customers';
   var raw=isO?[r.owner]:isD?(r.dist||[]):opCustList(r);
   _ol.items=raw.map(function(x,i){ return {name:String(x.name||x.n||'—'), id:String(x.id||((isD?'DST-':'CUS-')+('000'+(i+1)).slice(-4))), x:x}; });
@@ -6253,21 +6259,57 @@ function openOwnerList(kind){
 }
 function openPerson(i){
   var it=_ol.items[i], r=_cdOwner; if(!it||!r) return;
-  var x=it.x, k=_ol.kind;
+  var x=it.x, k=_ol.kind, isO=(k==='owner');
   ctyOpen('personProfPage');
-  document.getElementById('ppAv').textContent=it.name.charAt(0).toUpperCase();
+  document.getElementById('ppCard').hidden=isO; document.getElementById('ppCards').hidden=!isO;
+  var av=document.getElementById('ppAv');
   document.getElementById('ppName').textContent=it.name;
-  document.getElementById('ppRole').textContent=(k==='owner'?'City Owner':k==='dist'?'Distributor':'Customer')+' · '+r.owner.city;
-  var rows= k==='owner'
-    ? [['Owner ID',x.id],['Mobile',x.mobile],['Joined',x.joined?owFmtDate(x.joined):''],['Last active',x.last?owFmtLast(x.last):''],['Status',x.status],['City',x.city]]
-    : k==='dist'
+  document.getElementById('ppRole').textContent=(isO?'City Owner':k==='dist'?'Distributor':'Customer')+' · '+r.owner.city;
+  if(isO){ ppOwnerView(r); return; }
+  av.textContent=it.name.charAt(0).toUpperCase();
+  var rows= k==='dist'
     ? [['ID',it.id],['Mobile',x.mobile],['City',x.city],['Joined',x.joined?owFmtDate(x.joined):''],['Locations saved',x.loc],['Collected',x.col],['Missing',x.mis]]
     : [['ID',it.id],['Username',x.username],['Mobile',x.mobile],['City',x.city],['Joined',x.joined?owFmtDate(x.joined):''],
        ['Status',x.st?String(x.st).toUpperCase():''],['Slips uploaded',x.slips],['Item',x.item],['Amount',(x.amt!=null&&x.amt!=='')?'Rs. '+Number(x.amt).toLocaleString('en-US'):''],['Last slip',x.d]];
   document.getElementById('ppGrid').innerHTML=rows.filter(function(a){ return a[1]!==undefined&&a[1]!==null&&a[1]!==''; })
     .map(function(a){ return '<li><small>'+a[0]+'</small><b>'+dxEsc(String(a[1]))+'</b></li>'; }).join('');
 }
-function ppBack(){ openOwnerList(_ol.kind); }
+/* Owner profile preview: every card opens/closes; activity switches work for the admin; distributor / customer rows open their profiles */
+function ppAcc(title,body,open,live){ return '<div class="pp-acc'+(open?' open':'')+'"'+(live?' data-live="1"':'')+'><button type="button" class="pp-acc-h" onclick="ppAccToggle(this)"><span>'+title+'</span><i>›</i></button><div class="pp-acc-b">'+body+'</div></div>'; }
+function ppAccToggle(b){ var c=b.parentNode; c.classList.toggle('open'); if(c.getAttribute('data-live')&&c.classList.contains('open')) ppLiveLoad(); }
+function ppRows(kind,items){
+  return items.length ? items.map(function(it,i){ return '<button type="button" class="ol-row" onclick="ppSub(\''+kind+'\','+i+')"><span class="ol-av">'+dxEsc(it.name.charAt(0).toUpperCase())+'</span><b>'+dxEsc(it.name)+'</b><small>'+dxEsc(it.id)+'</small><i>›</i></button>'; }).join('')
+    : '<div class="dx-empty" style="padding:10px 0">Nothing here yet.</div>';
+}
+function ppOwnerView(r){
+  var o=r.owner, d=olBuild(r,'dist'), c=olBuild(r,'cust');
+  document.getElementById('ppAv').innerHTML='<img alt="Owner photo" src="'+owAvatar({name:o.name||'Owner',color:'#ff7a14',photo:o.photo,avatar:o.avatar})+'">';
+  document.getElementById('ppCards').innerHTML=
+      ppAcc('Owner details','<ul class="ow-grid">'+owGridHTML(r,true)+'</ul>',true)
+    + ppAcc('Activities','<div id="ppActs"></div>',false)
+    + ppAcc('Distributors · '+d.length,ppRows('dist',d),false)
+    + ppAcc('Customers · '+c.length,ppRows('cust',c),false)
+    + ppAcc('Live location','<div id="ppLive" class="dx-empty" style="padding:10px 0">Loading…</div>',false,true);
+  owRenderActs('ppActs',r);
+}
+function ppLiveLoad(){
+  var box=document.getElementById('ppLive'), r=_cdOwner; if(!box||!r) return;
+  if(!glHasGAS()){ box.textContent='Live location works on the real app (needs the server).'; return; }
+  box.textContent='Loading…';
+  google.script.run.withSuccessHandler(function(x){
+    if(!x||!x.found){ box.textContent='No owner yet.'; return; }
+    if(!x.enabled){ box.textContent='Live Location is switched OFF for this owner.'; return; }
+    if(x.lat==null){ box.textContent='Waiting for the owner to open the app and share a location…'; return; }
+    var key=x.lat.toFixed(5)+','+x.lng.toFixed(5);
+    box.innerHTML='<iframe title="Owner location" loading="lazy" style="width:100%;height:260px;border:0;border-radius:12px" src="https://maps.google.com/maps?q='+key+'&z=16&output=embed"></iframe>'
+      +'<div style="padding:10px 0 4px"><a href="https://www.google.com/maps?q='+key+'" target="_blank" rel="noopener" style="color:var(--rq)">Open in Google Maps ↗</a></div>';
+  }).withFailureHandler(function(){ box.textContent='Could not load the location.'; }).getOwnerLive(r.owner.city,window._admKey||'');
+}
+function ppSub(kind,i){ var r=_cdOwner; if(!r) return; _ol.kind=kind; _ol.items=olBuild(r,kind); _ppRet='owner'; openPerson(i); }
+function ppBack(){
+  if(_ppRet==='owner'){ _ppRet=null; _ol.kind='owner'; _ol.items=olBuild(_cdOwner,'owner'); openPerson(0); }
+  else openOwnerList(_ol.kind);
+}
 
 /* ═══ CITY OWNER (real data from the server; sample data only when no server is attached) ═══ */
 var _cdOwner=null;
@@ -10740,6 +10782,23 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 .pp-card{max-width:780px;margin:0 auto;padding:20px 22px 12px;border:1px solid rgba(255,255,255,.22);border-radius:16px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);}
 .pp-card .ow-grid li{background:transparent !important;border:1px solid rgba(255,255,255,.22) !important;}
 .pp-card .ow-grid b{color:#fff !important;}
+/* Owner profile preview (admin): clickable accordion cards */
+.pp-avatar{overflow:hidden;}
+.pp-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
+#ppCards{max-width:780px;margin:0 auto;}
+.pp-acc{margin:0 0 16px;border:1px solid rgba(255,255,255,.22);border-radius:16px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);transition:border-color .2s;}
+.pp-acc:hover{border-color:rgba(255,122,20,.6);}
+.pp-acc-h{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;background:transparent;border:0;color:var(--rq);font:700 12px 'Inter',sans-serif;letter-spacing:3px;text-transform:uppercase;padding:18px 22px;cursor:pointer;text-align:left;}
+.pp-acc-h i{font-style:normal;font-size:22px;transition:transform .25s;}
+.pp-acc.open .pp-acc-h i{transform:rotate(90deg);}
+.pp-acc-b{display:none;padding:0 22px 20px;}
+.pp-acc.open .pp-acc-b{display:block;}
+.pp-acc .ow-grid li{background:transparent !important;border:1px solid rgba(255,255,255,.22) !important;}
+.pp-acc .ow-grid b,.pp-acc .ow-grid b.g,.pp-acc .ow-grid b.r,.pp-acc .ow-grid b.c{color:#fff !important;}
+.pp-acc .ol-row{margin-bottom:10px;}
+#personProfPage .tg{--tc:#fff;box-shadow:none !important;}
+#personProfPage .tg.on{--tc:var(--rq);animation:none !important;box-shadow:none !important;}
+#personProfPage .tg::after{box-shadow:none !important;}
 </style>
 </body>
 </html>
