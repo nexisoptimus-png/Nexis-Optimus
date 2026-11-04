@@ -3465,6 +3465,30 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
   </div>
 </div>
 
+<!-- ═══ ADMIN: OWNER'S DISTRIBUTORS / CUSTOMERS LIST ═══ -->
+<div id="ownerListPage" class="dxp">
+  <div class="dx-wrap">
+    <button class="ac-back" onclick="openOwnerProfile()">← Back to owner</button>
+    <div class="dx-tag"><i></i><span id="olTag">DISTRIBUTORS</span></div>
+    <h1 class="dx-title" id="olTitle">Distributors</h1>
+    <p class="dx-sub" id="olSub"></p>
+    <div class="ol-list" id="olList"></div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN: DISTRIBUTOR / CUSTOMER PROFILE (opened from the list) ═══ -->
+<div id="personProfPage" class="dxp">
+  <div class="dx-wrap">
+    <button class="ac-back" onclick="ppBack()">← Back to list</button>
+    <div class="pp-head">
+      <div class="pp-avatar" id="ppAv"></div>
+      <h1 class="ow-name" id="ppName"></h1>
+      <div class="ow-role" id="ppRole"></div>
+    </div>
+    <div class="pp-card"><ul class="ow-grid" id="ppGrid"></ul></div>
+  </div>
+</div>
+
 <!-- ═══ OWNER: MY OWNER PROFILE (the owner's own page) ═══ -->
 
 <div id="ownerHomePage" class="dxp">
@@ -4480,7 +4504,7 @@ var _rcTimer=null;
 function rcEsc(t){ return String(t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 function hideAllPages(){
   var _f=document.getElementById('ownerFab'); if(_f) _f.hidden=!(window._isOwner&&typeof cu!=='undefined'&&cu);
-  ['homePage','detailsPage','profilePage','adminPage','hubPage','racePage','startPage','vaultPage','arenaPage','raceMapPage','profile2Page','profile3Page','activityPage','dayPage','whatPage','distPage','custPage','cityPage','cityDetPage','ownerProfPage','ownerHomePage','acctPage','stockPage','rpAdmin','rpOwner','rpDistributor','rpCustomer'].forEach(function(id){
+  ['homePage','detailsPage','profilePage','adminPage','hubPage','racePage','startPage','vaultPage','arenaPage','raceMapPage','profile2Page','profile3Page','activityPage','dayPage','whatPage','distPage','custPage','cityPage','cityDetPage','ownerProfPage','ownerListPage','personProfPage','ownerHomePage','acctPage','stockPage','rpAdmin','rpOwner','rpDistributor','rpCustomer'].forEach(function(id){
     var el=document.getElementById(id); if(el) el.style.display='none';
   });
   if(_rcTimer){ clearInterval(_rcTimer); _rcTimer=null; }
@@ -5928,7 +5952,7 @@ function dxStats(id,list){
   list.forEach(function(s,i){
     var d=document.createElement('div'); d.className='dx-stat'; d.style.setProperty('--c',s.c); d.style.setProperty('--i',i);
     d.innerHTML='<span class="dx-ico">'+s.i+'</span><small>'+s.l+'</small><b>0</b>';
-    box.appendChild(d); dxCount(d.querySelector('b'),s.v);
+    box.appendChild(d); if(typeof s.v==='number') dxCount(d.querySelector('b'),s.v); else d.querySelector('b').textContent=s.v;
   });
 }
 function dxToggle(btn){ var c=btn.closest('.dx-card'); if(c) c.classList.toggle('open'); }
@@ -6194,13 +6218,56 @@ function openOwnerProfile(){
   var r=_cdOwner; if(!r) return;
   ctyOpen('ownerProfPage');
   owFill('op',r);
-  dxStats('opStats',[{l:'Locations Saved',v:r.stats.loc,c:'#00f0ff',i:'📍'},{l:'Collected',v:r.stats.col,c:'#39ff88',i:'📦'},{l:'Missing',v:r.stats.mis,c:'#ff3355',i:'⚠️'}]);
+  var _nd=(r.stats&&typeof r.stats.distributors==='number')?r.stats.distributors:((r.dist||[]).length);
+  var _nc=(r.stats&&typeof r.stats.customers==='number')?r.stats.customers:(Array.isArray(r.customers)?r.customers.length:(r.sample?ctyData(r.owner.city).length:'—'));
+  dxStats('opStats',[{l:'Owner',v:1,c:'#ff7a14',i:'👤'},{l:'Distributors',v:_nd,c:'#ff7a14',i:'🧑‍💼'},{l:'Customers',v:_nc,c:'#ff7a14',i:'👥'}]);
+  ['owner','dist','cust'].forEach(function(k,i){
+    var c=document.querySelectorAll('#opStats .dx-stat')[i]; if(!c||!k) return;
+    c.setAttribute('role','button'); c.setAttribute('tabindex','0'); c.insertAdjacentHTML('beforeend','<em class="dx-more">VIEW LIST ›</em>');
+    var go=function(){ openOwnerList(k); };
+    c.addEventListener('click',go); c.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); go(); } });
+  });
   var d=document.getElementById('opDist');
   d.innerHTML=(r.dist&&r.dist.length)
     ? '<div class="op-drow op-dhead"><span>Distributor</span><span>Locations</span><span>Collected</span><span>Missing</span></div>'
       +r.dist.map(function(x){ return '<div class="op-drow"><b>'+dxEsc(x.name||'—')+'</b><span class="c">'+x.loc+'</span><span class="g">'+x.col+'</span><span class="'+(x.mis?'r':'')+'">'+x.mis+'</span></div>'; }).join('')
     : '<div class="dx-empty" style="padding:14px 0">No distributors under this owner yet.</div>';
 }
+
+/* ═══ Owner → (Owner / Distributors / Customers) list → person profile ═══
+   Data comes from getCityOwner(): owner{}, dist[] {id,name,mobile,city,joined,loc,col,mis}, customers[] {id,name,username,mobile,city,joined}. */
+var _ol={kind:'dist',items:[]};
+function opCustList(r){ return Array.isArray(r.customers)?r.customers:(r.sample?ctyData(r.owner.city):[]); }
+function openOwnerList(kind){
+  var r=_cdOwner; if(!r) return; _ol.kind=kind;
+  var isO=(kind==='owner'), isD=(kind==='dist'), label=isO?'Owner':isD?'Distributors':'Customers';
+  var raw=isO?[r.owner]:isD?(r.dist||[]):opCustList(r);
+  _ol.items=raw.map(function(x,i){ return {name:String(x.name||x.n||'—'), id:String(x.id||((isD?'DST-':'CUS-')+('000'+(i+1)).slice(-4))), x:x}; });
+  ctyOpen('ownerListPage');
+  document.getElementById('olTag').textContent=label.toUpperCase();
+  document.getElementById('olTitle').textContent=label;
+  document.getElementById('olSub').textContent=isO?(r.owner.city+' · city owner'):((r.owner.name||'Owner')+' · '+r.owner.city+' · '+_ol.items.length+' total');
+  document.getElementById('olList').innerHTML=_ol.items.length
+    ? _ol.items.map(function(it,i){ return '<button type="button" class="ol-row" onclick="openPerson('+i+')"><span class="ol-av">'+dxEsc(it.name.charAt(0).toUpperCase())+'</span><b>'+dxEsc(it.name)+'</b><small>'+dxEsc(it.id)+'</small><i>›</i></button>'; }).join('')
+    : '<div class="dx-empty">No '+label.toLowerCase()+' to show yet.</div>';
+}
+function openPerson(i){
+  var it=_ol.items[i], r=_cdOwner; if(!it||!r) return;
+  var x=it.x, k=_ol.kind;
+  ctyOpen('personProfPage');
+  document.getElementById('ppAv').textContent=it.name.charAt(0).toUpperCase();
+  document.getElementById('ppName').textContent=it.name;
+  document.getElementById('ppRole').textContent=(k==='owner'?'City Owner':k==='dist'?'Distributor':'Customer')+' · '+r.owner.city;
+  var rows= k==='owner'
+    ? [['Owner ID',x.id],['Mobile',x.mobile],['Joined',x.joined?owFmtDate(x.joined):''],['Last active',x.last?owFmtLast(x.last):''],['Status',x.status],['City',x.city]]
+    : k==='dist'
+    ? [['ID',it.id],['Mobile',x.mobile],['City',x.city],['Joined',x.joined?owFmtDate(x.joined):''],['Locations saved',x.loc],['Collected',x.col],['Missing',x.mis]]
+    : [['ID',it.id],['Username',x.username],['Mobile',x.mobile],['City',x.city],['Joined',x.joined?owFmtDate(x.joined):''],
+       ['Status',x.st?String(x.st).toUpperCase():''],['Slips uploaded',x.slips],['Item',x.item],['Amount',(x.amt!=null&&x.amt!=='')?'Rs. '+Number(x.amt).toLocaleString('en-US'):''],['Last slip',x.d]];
+  document.getElementById('ppGrid').innerHTML=rows.filter(function(a){ return a[1]!==undefined&&a[1]!==null&&a[1]!==''; })
+    .map(function(a){ return '<li><small>'+a[0]+'</small><b>'+dxEsc(String(a[1]))+'</b></li>'; }).join('');
+}
+function ppBack(){ openOwnerList(_ol.kind); }
 
 /* ═══ CITY OWNER (real data from the server; sample data only when no server is attached) ═══ */
 var _cdOwner=null;
@@ -10651,6 +10718,28 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #ownerProfPage .dx-stat{--c:var(--rq) !important;background:transparent !important;background-color:transparent !important;border:1px solid rgba(255,255,255,.22) !important;box-shadow:none !important;animation:none !important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);}
 #ownerProfPage .dx-stat b{color:#fff !important;text-shadow:none !important;}
 #ownerProfPage .dx-stat .dx-ico{filter:grayscale(1) brightness(1.8);}
+/* Owner stat cards = clickable; Distributors/Customers list page + person profile page (white + orange only) */
+#ownerProfPage .dx-stat{cursor:pointer;}
+#ownerProfPage .dx-stat:hover{border-color:var(--rq) !important;}
+.dx-more{display:block;margin-top:8px;font-style:normal;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--rq);}
+#ownerListPage,#personProfPage{--ac:var(--rq);}
+#ownerListPage .dx-title{color:#fff !important;}
+#ownerListPage .dx-tag{color:#fff !important;border-color:rgba(255,255,255,.3) !important;}
+#ownerListPage .dx-tag i{background:#39ff88 !important;box-shadow:0 0 8px #39ff88 !important;}
+.ol-list{max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:14px;}
+.ol-row{display:flex;align-items:center;gap:14px;width:100%;text-align:left;cursor:pointer;padding:14px 18px;color:#fff;font-family:'Inter',sans-serif;background:transparent;border:1px solid rgba(255,255,255,.22);border-radius:16px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);transition:transform .2s,border-color .2s;}
+.ol-row:hover{border-color:var(--rq);transform:translateY(-2px);}
+.ol-av{flex:none;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid var(--rq);color:var(--rq);font-weight:800;}
+.ol-row b{flex:1;font-size:16px;letter-spacing:1px;text-transform:uppercase;}
+.ol-row small{color:var(--text-dim);letter-spacing:2px;font-size:11px;}
+.ol-row i{font-style:normal;color:var(--rq);font-size:22px;}
+.pp-head{text-align:center;margin:10px 0 24px;}
+.pp-avatar{width:120px;height:120px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:900;color:var(--rq);border:3px solid var(--rq);background:transparent;}
+#personProfPage .ow-name{text-shadow:none !important;color:#fff !important;}
+#personProfPage .ow-role{display:inline-block;color:var(--rq) !important;border-color:rgba(255,122,20,.5) !important;background:rgba(255,122,20,.08) !important;margin-bottom:0;}
+.pp-card{max-width:780px;margin:0 auto;padding:20px 22px 12px;border:1px solid rgba(255,255,255,.22);border-radius:16px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);}
+.pp-card .ow-grid li{background:transparent !important;border:1px solid rgba(255,255,255,.22) !important;}
+.pp-card .ow-grid b{color:#fff !important;}
 </style>
 </body>
 </html>
