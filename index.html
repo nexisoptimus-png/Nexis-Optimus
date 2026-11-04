@@ -6535,15 +6535,14 @@ function ohDistInit(){
   c.onclick=ohDistToggle; c.onkeydown=function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); ohDistToggle(); } };
 }
 /* 4) the owner's own profile page */
-function ownLoad(on){ var l=document.getElementById('nxLoad'); if(l) l.hidden=!on; }
+function ownLoad(on){ /* loader disabled: owner profile opens directly after login */ var l=document.getElementById('nxLoad'); if(l) l.hidden=true; }
 function showOwnerHome(){
   if(!cu){ window._pendingDest='owner'; openOverlay('authOverlay'); showLogin(); return; }
   closeOverlay('menuOverlay');
-  /* while the owner profile loads, show a dark loader (so the Owner Portal page does not show again) */
-  ownLoad(true); setTimeout(function(){ ownLoad(false); },20000);
-  var done=function(err,r){
-    ownLoad(false);
-    if(err||!r||!r.found){ dxToast(err?String(err).replace(/^Error:\s*/i,''):'This account is not a City Owner. Please log in with your owner account.'); window._pendingDest='owner'; openOverlay('authOverlay'); showLogin(); return; }
+  /* NO loading screen: open the owner profile page straight away (instant from the saved copy if there is one), then refresh it when the live data arrives */
+  var _ck='nxOwnerProf_'+String(cu.username||'').toLowerCase(), _shown=false, _cached=null;
+  try{ _cached=JSON.parse(localStorage.getItem(_ck)||'null'); }catch(e0){}
+  var render=function(r){
     ctyOpen('ownerHomePage'); setNavUser(); window._isOwner=true; var _fb=document.getElementById('ownerFab'); if(_fb) _fb.hidden=true;
     owFill('oh',r);
     var s=r.stats||{distributors:0,loc:0,col:0,mis:0};
@@ -6559,6 +6558,17 @@ function showOwnerHome(){
       : '<div class="dx-empty" style="padding:14px 0">No distributors in your city yet.</div>';
     try{ ohLiveStart(r); }catch(e3){}
   };
+  var done=function(err,r){
+    if(err||!r||!r.found){
+      try{ localStorage.removeItem(_ck); }catch(e5){}
+      if(_shown){ try{ goHome(); }catch(e6){} }
+      dxToast(err?String(err).replace(/^Error:\s*/i,''):'This account is not a City Owner. Please log in with your owner account.'); window._pendingDest='owner'; openOverlay('authOverlay'); showLogin(); return;
+    }
+    try{ localStorage.setItem(_ck,JSON.stringify(r)); }catch(e4){}
+    render(r); _shown=true;
+  };
+  if(_cached&&_cached.found){ render(_cached); _shown=true; }
+  else { ctyOpen('ownerHomePage'); _shown=true; try{ document.getElementById('ohName').textContent=(cu.displayName||cu.username||''); }catch(e7){} }
   if(glHasGAS()){
     google.script.run.withSuccessHandler(function(r){ done(null,r); }).withFailureHandler(function(e){ done((e&&e.message)||String(e)); }).getMyOwnerProfile(cu.username);
   } else {
@@ -10832,7 +10842,7 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #ownerHomePage a{color:var(--rq) !important;}
 /* dark loader shown while the owner profile loads */
 #nxLoad{position:fixed;inset:0;z-index:9500;background:#050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#fff;font-family:'Inter',sans-serif;letter-spacing:2px;text-transform:uppercase;font-size:12px;}
-#nxLoad[hidden]{display:none !important;}
+#nxLoad,#nxLoad[hidden]{display:none !important;}
 #nxLoad .nx-spin{width:46px;height:46px;border-radius:50%;border:3px solid rgba(255,255,255,.18);border-top-color:var(--rq);animation:nxSpin .8s linear infinite;}
 @keyframes nxSpin{to{transform:rotate(360deg);}}
 </style>
