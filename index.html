@@ -6535,10 +6535,14 @@ function ohDistInit(){
   c.onclick=ohDistToggle; c.onkeydown=function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); ohDistToggle(); } };
 }
 /* 4) the owner's own profile page */
+function ownLoad(on){ var l=document.getElementById('nxLoad'); if(l) l.hidden=!on; }
 function showOwnerHome(){
   if(!cu){ window._pendingDest='owner'; openOverlay('authOverlay'); showLogin(); return; }
   closeOverlay('menuOverlay');
+  /* while the owner profile loads, show a dark loader (so the Owner Portal page does not show again) */
+  ownLoad(true); setTimeout(function(){ ownLoad(false); },20000);
   var done=function(err,r){
+    ownLoad(false);
     if(err||!r||!r.found){ dxToast(err?String(err).replace(/^Error:\s*/i,''):'This account is not a City Owner. Please log in with your owner account.'); window._pendingDest='owner'; openOverlay('authOverlay'); showLogin(); return; }
     ctyOpen('ownerHomePage'); setNavUser(); window._isOwner=true; var _fb=document.getElementById('ownerFab'); if(_fb) _fb.hidden=true;
     owFill('oh',r);
@@ -10826,6 +10830,12 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #ownerHomePage .op-drow .c,#ownerHomePage .op-drow .g,#ownerHomePage .op-drow .r{color:#fff !important;}
 #ownerHomePage .ow-empty,#ownerHomePage .dx-empty{background:transparent !important;border-color:rgba(255,255,255,.25) !important;}
 #ownerHomePage a{color:var(--rq) !important;}
+/* dark loader shown while the owner profile loads */
+#nxLoad{position:fixed;inset:0;z-index:9500;background:#050505;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#fff;font-family:'Inter',sans-serif;letter-spacing:2px;text-transform:uppercase;font-size:12px;}
+#nxLoad[hidden]{display:none !important;}
+#nxLoad .nx-spin{width:46px;height:46px;border-radius:50%;border:3px solid rgba(255,255,255,.18);border-top-color:var(--rq);animation:nxSpin .8s linear infinite;}
+@keyframes nxSpin{to{transform:rotate(360deg);}}
 </style>
+<div id="nxLoad" hidden><div class="nx-spin"></div><p>Loading your profile…</p></div>
 </body>
 </html>
