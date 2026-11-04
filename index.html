@@ -6539,6 +6539,12 @@ function ownLoad(on){ /* loader disabled: owner profile opens directly after log
 function showOwnerHome(){
   if(!cu){ window._pendingDest='owner'; openOverlay('authOverlay'); showLogin(); return; }
   closeOverlay('menuOverlay');
+  /* after login the owner first sees the same Your Details / city selection page as distributors and customers */
+  showDetailsPage('Owner');
+}
+function showOwnerProfile(){
+  if(!cu){ window._pendingDest='owner'; openOverlay('authOverlay'); showLogin(); return; }
+  closeOverlay('menuOverlay');
   /* NO loading screen: open the owner profile page straight away (instant from the saved copy if there is one), then refresh it when the live data arrives */
   var _ck='nxOwnerProf_'+String(cu.username||'').toLowerCase(), _shown=false, _cached=null;
   try{ _cached=JSON.parse(localStorage.getItem(_ck)||'null'); }catch(e0){}
@@ -6915,8 +6921,8 @@ function ocSave(){
 /* ═══ DETAILS PAGE ═══ */
 function showDetailsPage(kind){
   if(!cu){ requireAuth('race'); return; }
-  window._dtKind = (kind==='Customer') ? 'Customer' : '';
-  try{ document.getElementById('dtKicker').textContent = window._dtKind || 'Distributor'; }catch(e){}
+  window._dtKind = (kind==='Customer') ? 'Customer' : (kind==='Owner' ? 'Owner' : '');
+  try{ document.getElementById('dtKicker').textContent = (window._dtKind==='Owner' ? 'City Owner' : (window._dtKind || 'Distributor')); }catch(e){}
   hideAllPages();
   try{ document.getElementById('hubPage').style.display='none'; }catch(e){}
   document.getElementById('homePage').style.display='none';
@@ -6942,6 +6948,7 @@ function submitDetails(){
   pd.name = n; pd.mobile = m; pd.city = c;
   saveProfileData(cu.username);
   try{ if(typeof glHasGAS==='function' && glHasGAS()) google.script.run.withFailureHandler(function(){}).saveMyCity(cu.username, c); }catch(e){}
+  if(window._dtKind==='Owner'){ showOwnerProfile(); return; }
   if(window._dtKind==='Customer'){ showProfile(); return; }
   showRacePage();
 }
