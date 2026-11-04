@@ -6169,10 +6169,14 @@ function owRenderActs(boxId,r){
     box.appendChild(row);
   });
 }
-function owGridHTML(r){
+function owGridHTML(r,cityPage){
   var o=r.owner, s=r.stats, t=s.col+s.mis, rate=t?Math.round(s.col*100/t):0;
+  /* City page: 3 cards (Locations saved / Collected / Missing) replaced by ONE "Customers" card = customers saved in the owner's city.
+     Real data: server must send stats.customers (number). Sample mode: count from the sample city data. */
+  var cust=(typeof s.customers==='number')?s.customers:(r.sample?ctyData(o.city).length:'—');
+  var mid=cityPage?[['Customers',cust,'c']]:[['Locations saved',s.loc,'c'],['Collected',s.col,'g'],['Missing',s.mis,s.mis?'r':'']];
   return [['Owner ID',o.id,''],['Mobile',o.mobile||'—',''],['Joined',owFmtDate(o.joined),'c'],['Last active',owFmtLast(o.last),''],['Status',o.status,'g'],['City',o.city,''],
-          ['Distributors',s.distributors,'c'],['Locations saved',s.loc,'c'],['Collected',s.col,'g'],['Missing',s.mis,s.mis?'r':''],['Collection rate',t?rate+'%':'—','g']]
+          ['Distributors',s.distributors,'c']].concat(mid,[['Collection rate',t?rate+'%':'—','g']])
     .map(function(x){ return '<li><small>'+x[0]+'</small><b class="'+x[2]+'">'+dxEsc(x[1])+'</b></li>'; }).join('');
 }
 function owFill(p,r){   /* p = 'ow' (city page) or 'op' (profile page) */
@@ -6182,7 +6186,7 @@ function owFill(p,r){   /* p = 'ow' (city page) or 'op' (profile page) */
   im.src=owAvatar({name:o.name,color:CTY_COL[Math.max(0,CTY_LIST.indexOf(o.city))%CTY_COL.length],photo:o.photo,avatar:o.avatar});
   document.getElementById(p+'Name').textContent=o.name||'—';
   document.getElementById(p+'Role').textContent='City Owner · '+o.city;
-  document.getElementById(p+'Grid').innerHTML=owGridHTML(r);
+  document.getElementById(p+'Grid').innerHTML=owGridHTML(r,p==='ow');
   var sm=document.getElementById(p+'Sample'); if(sm) sm.hidden=!r.sample;
   owRenderActs(p+'Acts',r);
 }
@@ -10629,6 +10633,9 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #cityDetPage .cd-slogan{font-family:'Inter',sans-serif;font-weight:800;font-size:clamp(16px,2.6vw,26px);letter-spacing:1px;color:#fff;margin-top:4px;}
 #cityDetPage .cd-slogan b{color:var(--rq);font-weight:800;}
 #cityDetPage .cd-hero .dx-tag i{background:#39ff88 !important;box-shadow:0 0 8px #39ff88 !important;}
+/* City Control > Owner details: full glass, outline only (no gray fills) */
+#cityDetPage .ow-card:has(#owGrid){background:transparent !important;background-color:transparent !important;border:1px solid rgba(255,255,255,.22) !important;box-shadow:none !important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);}
+#cityDetPage .ow-card:has(#owGrid) .ow-grid li{background:transparent !important;border:1px solid rgba(255,255,255,.22) !important;box-shadow:none !important;}
 </style>
 </body>
 </html>
