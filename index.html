@@ -3415,7 +3415,7 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
     <div class="cd-hero">
       <div class="dx-tag"><i></i>CITY CONTROL</div>
       <h1 class="cd-name" id="cdName"></h1>
-      <p class="dx-sub" style="margin-bottom:0">Customers, slips and collections<em class="dx-sample" id="cdSample" hidden>SAMPLE DATA</em></p>
+      <p class="dx-sub cd-slogan" style="margin-bottom:0"><b>Dig.</b> Win. Repeat.<em class="dx-sample" id="cdSample" hidden>SAMPLE DATA</em></p>
       <div class="cd-rankrow">
         <div class="cd-rank" id="cdRank">S</div>
         <div class="cd-power"><div class="cd-powlbl"><span>CITY POWER</span><b id="cdPow">0%</b></div><div class="cd-xp"><i id="cdXp"></i></div></div>
@@ -6247,8 +6247,8 @@ function owSetState(kind,msg){
 }
 function owHero(stats){   /* city power = collected / (collected + missing) of the owner's distributors */
   var rk=document.getElementById('cdRank'), xp=document.getElementById('cdXp'), t=stats?(stats.col+stats.mis):0,
-      rate=t?Math.round(stats.col*100/t):0, rank=!t?'–':rate>=75?'S':rate>=50?'A':rate>=30?'B':'C',
-      rc={S:'#39ff88',A:'#00f0ff',B:'#ff8a1e',C:'#ff3355'}[rank]||'#8a93b8';
+      rate=5 /* TEMP: fixed 5% for now; real value = t?Math.round(stats.col*100/t):0 */, rank=!t?'–':rate>=75?'S':rate>=50?'A':rate>=30?'B':'C',
+      rc='var(--rq)';
   rk.textContent=rank; rk.style.setProperty('--rc',rc);
   document.getElementById('cdPow').textContent=rate+'%';
   xp.style.width='0'; setTimeout(function(){ xp.style.width=rate+'%'; },150);
@@ -10625,6 +10625,10 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 #cityDetPage .orq-no{border-color:rgba(255,255,255,.4) !important;color:#fff !important;}
 #cityDetPage .ow-fix{background:rgba(255,122,20,.06) !important;border-color:rgba(255,122,20,.35) !important;}
 #cityDetPage .ow-fix b{color:var(--rq) !important;}
+/* City Control: slogan under city name, green blinking dot */
+#cityDetPage .cd-slogan{font-family:'Inter',sans-serif;font-weight:800;font-size:clamp(16px,2.6vw,26px);letter-spacing:1px;color:#fff;margin-top:4px;}
+#cityDetPage .cd-slogan b{color:var(--rq);font-weight:800;}
+#cityDetPage .cd-hero .dx-tag i{background:#39ff88 !important;box-shadow:0 0 8px #39ff88 !important;}
 </style>
 </body>
 </html>
