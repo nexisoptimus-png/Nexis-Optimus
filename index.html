@@ -6539,7 +6539,7 @@ function showOwnerHome(){
   if(!cu){ window._pendingDest='owner'; openOverlay('authOverlay'); showLogin(); return; }
   closeOverlay('menuOverlay');
   var done=function(err,r){
-    if(err||!r||!r.found){ dxToast(err?String(err).replace(/^Error:\s*/i,''):'No approved City Owner profile for this account.'); showProfile(); return; }
+    if(err||!r||!r.found){ dxToast(err?String(err).replace(/^Error:\s*/i,''):'This account is not a City Owner. Please log in with your owner account.'); window._pendingDest='owner'; openOverlay('authOverlay'); showLogin(); return; }
     ctyOpen('ownerHomePage'); setNavUser(); window._isOwner=true; var _fb=document.getElementById('ownerFab'); if(_fb) _fb.hidden=true;
     owFill('oh',r);
     var s=r.stats||{distributors:0,loc:0,col:0,mis:0};
