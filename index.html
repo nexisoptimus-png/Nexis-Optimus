@@ -10639,6 +10639,18 @@ document.querySelectorAll('.rp-hero').forEach(function(h,i){
 /* City Control: Activities + Live location cards use the same glass outline design as Owner details */
 #cityDetPage .ow-card{background:transparent !important;background-color:transparent !important;border:1px solid rgba(255,255,255,.22) !important;box-shadow:none !important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);}
 #cityDetPage .ow-card .dx-empty,#cityDetPage .ow-card #owLive{background:transparent !important;border-color:rgba(255,255,255,.22) !important;box-shadow:none !important;}
+/* Owner Profile page ("Check the Owner"): no neon - only white + orange; data cards below the 3 stat cards removed */
+#ownerProfPage{--ac:var(--rq);}
+#ownerProfPage .ow-wrap{display:none !important;}
+#ownerProfPage .ow-stage{--oc:var(--rq);}
+#ownerProfPage .ow-stage::before{background:conic-gradient(from 0deg,var(--rq),#fff,var(--rq)) !important;filter:none !important;}
+#ownerProfPage .ow-photo{box-shadow:none !important;}
+#ownerProfPage .ow-dot{background:var(--rq) !important;box-shadow:none !important;}
+#ownerProfPage .ow-name{text-shadow:none !important;color:#fff !important;}
+#ownerProfPage .ow-role{color:var(--rq) !important;border-color:rgba(255,122,20,.5) !important;background:rgba(255,122,20,.08) !important;}
+#ownerProfPage .dx-stat{--c:var(--rq) !important;background:transparent !important;background-color:transparent !important;border:1px solid rgba(255,255,255,.22) !important;box-shadow:none !important;animation:none !important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);}
+#ownerProfPage .dx-stat b{color:#fff !important;text-shadow:none !important;}
+#ownerProfPage .dx-stat .dx-ico{filter:grayscale(1) brightness(1.8);}
 </style>
 </body>
 </html>
