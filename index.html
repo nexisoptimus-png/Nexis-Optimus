@@ -7361,6 +7361,7 @@ function glAcceptCheck(){
 
 /* (2) Live Location — owner side: share while ON, stop when OFF */
 var _ohT=null,_ohW=null,_ohPos=null;
+function ohSetStatus(t){ window._ohStatus=t; var n=document.getElementById('ohLiveNote'); if(n) n.textContent=t; }
 function ohActsHTML(acts){
   return OW_ACTS.map(function(a){
     var on=!!(acts&&acts[a.k]);
@@ -7369,13 +7370,13 @@ function ohActsHTML(acts){
 }
 function ohApply(acts){
   var box=document.getElementById('ohActs'); if(!box) return;
-  box.innerHTML=ohActsHTML(acts)+'<div class="dx-empty" id="ohLiveNote" style="padding:10px 0">📍 Your live location is always shared with the admin while you use the app.</div>';
+  box.innerHTML=ohActsHTML(acts)+'<div class="dx-empty" id="ohLiveNote" style="padding:10px 0">'+dxEsc(window._ohStatus||'📍 Your live location is always shared with the admin while you use the app.')+'</div>';
   
 }
 function ohGeoStart(){
   if(_ohW!=null||!navigator.geolocation) return;
   _ohW=navigator.geolocation.watchPosition(function(p){ _ohPos={lat:p.coords.latitude,lng:p.coords.longitude}; },
-    function(){ var n=document.getElementById('ohLiveNote'); if(n) n.textContent='⚠️ Allow location access in your browser so the admin can see you.'; },
+    function(er){ ohSetStatus('⚠️ Allow location access in your browser so the admin can see you.'+(er?' (code '+er.code+': '+(er.message||'')+')':'')); },
     {enableHighAccuracy:true,maximumAge:5000,timeout:20000});
 }
 function ohGeoStop(){ if(_ohW!=null&&navigator.geolocation){ try{ navigator.geolocation.clearWatch(_ohW); }catch(e){} } _ohW=null; _ohPos=null; }
@@ -7385,8 +7386,11 @@ function ohTick(){
   if(!pg||pg.style.display!=='block'||typeof cu==='undefined'||!cu||!glHasGAS()){ ohLiveStop(); return; }
   google.script.run.withSuccessHandler(function(r){ if(r&&r.found&&r.owner) ohApply(r.owner.acts||{}); }).withFailureHandler(function(){}).getMyOwnerProfile(cu.username);
   if(_ohPos&&_ohW!=null){
-    google.script.run.withSuccessHandler(function(x){ if(x&&x.live===false) ohGeoStop(); }).withFailureHandler(function(){}).saveOwnerLocation(cu.username,_ohPos.lat,_ohPos.lng);
-  }
+    google.script.run.withSuccessHandler(function(x){
+      if(x&&x.live===false) ohGeoStop();
+      ohSetStatus(x&&x.ok===false ? '⚠️ Server did not save the location (account not recognised as owner).' : '📍 Location sent to the server ✓ '+new Date().toLocaleTimeString());
+    }).withFailureHandler(function(e){ ohSetStatus('⚠️ Could not send location: '+((e&&e.message)||e)); }).saveOwnerLocation(cu.username,_ohPos.lat,_ohPos.lng);
+  } else { ohSetStatus('⏳ Waiting for your device location… Please click Allow when the browser asks.'); }
 }
 function ohLiveStart(r){
   ohLiveStop();
