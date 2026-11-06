@@ -7360,7 +7360,7 @@ function glAcceptCheck(){
 }
 
 /* (2) Live Location — owner side: share while ON, stop when OFF */
-var _ohT=null,_ohW=null,_ohPos=null;
+var _ohT=null,_ohW=null,_ohPos=null,_ohLow=false;
 function ohSetStatus(t){ window._ohStatus=t; var n=document.getElementById('ohLiveNote'); if(n) n.textContent=t; }
 function ohActsHTML(acts){
   return OW_ACTS.map(function(a){
@@ -7375,11 +7375,24 @@ function ohApply(acts){
 }
 function ohGeoStart(){
   if(_ohW!=null||!navigator.geolocation) return;
-  _ohW=navigator.geolocation.watchPosition(function(p){ _ohPos={lat:p.coords.latitude,lng:p.coords.longitude}; },
-    function(er){ ohSetStatus('⚠️ Allow location access in your browser so the admin can see you.'+(er?' (code '+er.code+': '+(er.message||'')+')':'')); },
-    {enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+  _ohLow=false;
+  var okFn=function(p){ _ohPos={lat:p.coords.latitude,lng:p.coords.longitude}; window._ohErr=''; };
+  var errFn=function(er){
+    var c=er?er.code:0;
+    window._ohErr='⚠️ Location problem (code '+c+(er&&er.message?': '+er.message:'')+')'+(c===1?' — click the 📍 icon in the address bar and set Location to Allow, then refresh.':c===2?' — turn ON Location in Windows/phone settings.':'');
+    ohSetStatus(window._ohErr);
+    /* GPS-grade accuracy can hang on laptops: retry once with normal (Wi-Fi) accuracy */
+    if(c!==1 && !_ohLow){
+      _ohLow=true;
+      try{ navigator.geolocation.clearWatch(_ohW); }catch(e){}
+      _ohW=navigator.geolocation.watchPosition(okFn,errFn,{enableHighAccuracy:false,maximumAge:30000,timeout:30000});
+    }
+  };
+  _ohW=navigator.geolocation.watchPosition(okFn,errFn,{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+  /* quick normal-accuracy read so a position is available fast */
+  try{ navigator.geolocation.getCurrentPosition(okFn,function(){},{enableHighAccuracy:false,maximumAge:60000,timeout:15000}); }catch(e){}
 }
-function ohGeoStop(){ if(_ohW!=null&&navigator.geolocation){ try{ navigator.geolocation.clearWatch(_ohW); }catch(e){} } _ohW=null; _ohPos=null; }
+function ohGeoStop(){ if(_ohW!=null&&navigator.geolocation){ try{ navigator.geolocation.clearWatch(_ohW); }catch(e){} } _ohW=null; _ohPos=null; _ohLow=false; window._ohErr=''; }
 function ohLiveStop(){ if(_ohT){ clearInterval(_ohT); _ohT=null; } ohGeoStop(); }
 function ohTick(){
   var pg=document.getElementById('ownerHomePage');
@@ -7390,7 +7403,7 @@ function ohTick(){
       if(x&&x.live===false) ohGeoStop();
       ohSetStatus(x&&x.ok===false ? '⚠️ Server did not save the location (account not recognised as owner).' : '📍 Location sent to the server ✓ '+new Date().toLocaleTimeString());
     }).withFailureHandler(function(e){ ohSetStatus('⚠️ Could not send location: '+((e&&e.message)||e)); }).saveOwnerLocation(cu.username,_ohPos.lat,_ohPos.lng);
-  } else { ohSetStatus('⏳ Waiting for your device location… Please click Allow when the browser asks.'); }
+  } else { ohSetStatus(window._ohErr||'⏳ Waiting for your device location… Please click Allow when the browser asks.'); }
 }
 function ohLiveStart(r){
   ohLiveStop();
