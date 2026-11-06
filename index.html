@@ -7444,6 +7444,11 @@ try{ console.log('NEXIS build r9 · no green profile bar · owner has no locatio
   function good(p){
     busy=false; fails=0; okOnce=true; unlock();
     var now=Date.now();
+    /* distributor / customer: save the position on their own Sheet tab (about once a minute) */
+    if(typeof cu!=='undefined' && cu && !isOwnerAcct() && now-lastSend>=60000){
+      lastSend=now;
+      try{ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){}).saveUserLocation(cu.username,p.coords.latitude,p.coords.longitude); }catch(e){}
+    }
   }
   function bad(e){
     busy=false; fails++;
