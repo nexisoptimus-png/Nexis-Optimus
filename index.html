@@ -3440,7 +3440,6 @@ body.nx-home-go #homePage .nx-welcome b{animation:nxWl .7s cubic-bezier(.2,.9,.3
       <div class="ow-role" id="owRole"></div>
       <div class="ow-card"><h3>Owner details<em class="dx-sample" id="owSample">SAMPLE DATA</em></h3><ul class="ow-grid" id="owGrid"></ul></div>
       <div class="ow-card"><h3>Activities</h3><div id="owActs"></div></div>
-      <div class="ow-card" id="owLiveCard"><h3>Live location<em class="dx-sample" id="owLiveTag">…</em></h3><div id="owLive" class="dx-empty" style="padding:6px 0 14px">Loading…</div></div>
       <div class="ow-check"><button type="button" class="ow-checkbtn" onclick="openOwnerProfile()">🔍&nbsp; Check the Owner</button></div>
       </div>
     </div>
@@ -6183,7 +6182,7 @@ function owRenderActs(boxId,r){
     b.onclick=function(){
       var v=!b.classList.contains('on');
       var paint=function(x){ b.classList.toggle('on',x); b.setAttribute('aria-checked',String(x)); b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); };
-      var done=function(acts){ o.acts=acts; dxToast(a.l+': '+(v?'ON':'OFF')+' — '+o.city); if(a.k==='live'&&window.owLiveStart) owLiveStart(o.city); ['owActs','opActs'].forEach(function(id){ if(id!==boxId && document.getElementById(id).children.length) owRenderActs(id,r); }); };
+      var done=function(acts){ o.acts=acts; dxToast(a.l+': '+(v?'ON':'OFF')+' — '+o.city); ['owActs','opActs'].forEach(function(id){ if(id!==boxId && document.getElementById(id).children.length) owRenderActs(id,r); }); };
       paint(v);
       if(r.sample){ owSet(o.city,a.k,v); var n=Object.assign({},o.acts); n[a.k]=v; done(n); return; }
       b.disabled=true;
@@ -6278,7 +6277,7 @@ function openPerson(i){
 }
 /* Owner profile preview: every card opens/closes; activity switches work for the admin; distributor / customer rows open their profiles */
 function ppAcc(title,body,open,live){ return '<div class="pp-acc'+(open?' open':'')+'"'+(live?' data-live="1"':'')+'><button type="button" class="pp-acc-h" onclick="ppAccToggle(this)"><span>'+title+'</span><i>›</i></button><div class="pp-acc-b">'+body+'</div></div>'; }
-function ppAccToggle(b){ var c=b.parentNode; c.classList.toggle('open'); if(c.getAttribute('data-live')&&c.classList.contains('open')) ppLiveLoad(); }
+function ppAccToggle(b){ var c=b.parentNode; c.classList.toggle('open'); }
 function ppRows(kind,items){
   return items.length ? items.map(function(it,i){ return '<button type="button" class="ol-row" onclick="ppSub(\''+kind+'\','+i+')"><span class="ol-av">'+dxEsc(it.name.charAt(0).toUpperCase())+'</span><b>'+dxEsc(it.name)+'</b><small>'+dxEsc(it.id)+'</small><i>›</i></button>'; }).join('')
     : '<div class="dx-empty" style="padding:10px 0">Nothing here yet.</div>';
@@ -6290,22 +6289,8 @@ function ppOwnerView(r){
       ppAcc('Owner details','<ul class="ow-grid">'+owGridHTML(r,true)+'</ul>',true)
     + ppAcc('Activities','<div id="ppActs"></div>',false)
     + ppAcc('Distributors · '+d.length,ppRows('dist',d),false)
-    + ppAcc('Customers · '+c.length,ppRows('cust',c),false)
-    + ppAcc('Live location','<div id="ppLive" class="dx-empty" style="padding:10px 0">Loading…</div>',false,true);
+    + ppAcc('Customers · '+c.length,ppRows('cust',c),false);
   owRenderActs('ppActs',r);
-}
-function ppLiveLoad(){
-  var box=document.getElementById('ppLive'), r=_cdOwner; if(!box||!r) return;
-  if(!glHasGAS()){ box.textContent='Live location works on the real app (needs the server).'; return; }
-  box.textContent='Loading…';
-  google.script.run.withSuccessHandler(function(x){
-    if(!x||!x.found){ box.textContent='No owner yet.'; return; }
-    if(!x.enabled){ box.textContent='Live Location is switched OFF for this owner.'; return; }
-    if(x.lat==null){ box.textContent='Waiting for the owner to open the app and share a location…'; return; }
-    var key=x.lat.toFixed(5)+','+x.lng.toFixed(5);
-    box.innerHTML='<iframe title="Owner location" loading="lazy" style="width:100%;height:260px;border:0;border-radius:12px" src="https://maps.google.com/maps?q='+key+'&z=16&output=embed"></iframe>'
-      +'<div style="padding:10px 0 4px"><a href="https://www.google.com/maps?q='+key+'" target="_blank" rel="noopener" style="color:var(--rq)">Open in Google Maps ↗</a></div>';
-  }).withFailureHandler(function(){ box.textContent='Could not load the location.'; }).getOwnerLive(r.owner.city,window._admKey||'');
 }
 function ppSub(kind,i){ var r=_cdOwner; if(!r) return; _ol.kind=kind; _ol.items=olBuild(r,kind); _ppRet='owner'; openPerson(i); }
 function ppBack(){
@@ -6381,7 +6366,7 @@ function openCity(city){
       if(!r||!r.found){ owSetState('none'); return; }
       _cdOwner=r; if(sm) sm.hidden=!r.sample;
       if(!r.sample){ _ownBadge.owned=_ownBadge.owned||{}; _ownBadge.owned[city]=true; ownCacheSave(); }
-      owFill('ow',r); owHero(r.stats); owSetState('ok'); try{ owLiveStart(city); }catch(e2){}
+      owFill('ow',r); owHero(r.stats); owSetState('ok');
     }catch(ex){ owSetState('error','Display error: '+((ex&&ex.message)||ex)); }
   });
 }
@@ -7359,9 +7344,8 @@ function glAcceptCheck(){
   }).withFailureHandler(function(){}).getAcceptingItems(cu.username);
 }
 
-/* (2) Live Location — owner side: share while ON, stop when OFF */
-var _ohT=null,_ohW=null,_ohPos=null,_ohLow=false;
-function ohSetStatus(t){ window._ohStatus=t; var n=document.getElementById('ohLiveNote'); if(n) n.textContent=t; }
+/* Owner profile page: keeps the activity list fresh. NO location is collected from owners. */
+var _ohT=null;
 function ohActsHTML(acts){
   return OW_ACTS.map(function(a){
     var on=!!(acts&&acts[a.k]);
@@ -7370,76 +7354,20 @@ function ohActsHTML(acts){
 }
 function ohApply(acts){
   var box=document.getElementById('ohActs'); if(!box) return;
-  box.innerHTML=ohActsHTML(acts)+'<div class="dx-empty" id="ohLiveNote" style="padding:10px 0">'+dxEsc(window._ohStatus||'📍 Your live location is always shared with the admin while you use the app.')+'</div>';
-  
+  box.innerHTML=ohActsHTML(acts);
 }
-function ohGeoStart(){
-  if(_ohW!=null||!navigator.geolocation) return;
-  _ohLow=false;
-  var okFn=function(p){ _ohPos={lat:p.coords.latitude,lng:p.coords.longitude}; window._ohErr=''; };
-  var errFn=function(er){
-    var c=er?er.code:0;
-    window._ohErr='⚠️ Location problem (code '+c+(er&&er.message?': '+er.message:'')+')'+(c===1?' — click the 📍 icon in the address bar and set Location to Allow, then refresh.':c===2?' — turn ON Location in Windows/phone settings.':'');
-    ohSetStatus(window._ohErr);
-    /* GPS-grade accuracy can hang on laptops: retry once with normal (Wi-Fi) accuracy */
-    if(c!==1 && !_ohLow){
-      _ohLow=true;
-      try{ navigator.geolocation.clearWatch(_ohW); }catch(e){}
-      _ohW=navigator.geolocation.watchPosition(okFn,errFn,{enableHighAccuracy:false,maximumAge:30000,timeout:30000});
-    }
-  };
-  _ohW=navigator.geolocation.watchPosition(okFn,errFn,{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
-  /* quick normal-accuracy read so a position is available fast */
-  try{ navigator.geolocation.getCurrentPosition(okFn,function(){},{enableHighAccuracy:false,maximumAge:60000,timeout:15000}); }catch(e){}
-}
-function ohGeoStop(){ if(_ohW!=null&&navigator.geolocation){ try{ navigator.geolocation.clearWatch(_ohW); }catch(e){} } _ohW=null; _ohPos=null; _ohLow=false; window._ohErr=''; }
-function ohLiveStop(){ if(_ohT){ clearInterval(_ohT); _ohT=null; } ohGeoStop(); }
+function ohLiveStop(){ if(_ohT){ clearInterval(_ohT); _ohT=null; } }
 function ohTick(){
   var pg=document.getElementById('ownerHomePage');
   if(!pg||pg.style.display!=='block'||typeof cu==='undefined'||!cu||!glHasGAS()){ ohLiveStop(); return; }
   google.script.run.withSuccessHandler(function(r){ if(r&&r.found&&r.owner) ohApply(r.owner.acts||{}); }).withFailureHandler(function(){}).getMyOwnerProfile(cu.username);
-  if(_ohPos&&_ohW!=null){
-    google.script.run.withSuccessHandler(function(x){
-      if(x&&x.live===false) ohGeoStop();
-      ohSetStatus(x&&x.ok===false ? '⚠️ Server did not save the location (account not recognised as owner).' : '📍 Location sent to the server ✓ '+new Date().toLocaleTimeString());
-    }).withFailureHandler(function(e){ ohSetStatus('⚠️ Could not send location: '+((e&&e.message)||e)); }).saveOwnerLocation(cu.username,_ohPos.lat,_ohPos.lng);
-  } else { ohSetStatus(window._ohErr||'⏳ Waiting for your device location… Please click Allow when the browser asks.'); }
 }
 function ohLiveStart(r){
   ohLiveStop();
   if(!glHasGAS()) return;
   ohApply((r&&r.owner&&r.owner.acts)||{});
-  ohGeoStart();
   _ohT=setInterval(ohTick,8000);
   setTimeout(ohTick,2500);
-}
-
-/* (2) Live Location — admin side: map of the owner, refreshed every 5 s */
-var _owLiveT=null;
-function owLiveStop(){ if(_owLiveT){ clearInterval(_owLiveT); _owLiveT=null; } }
-function owLiveStart(city){
-  owLiveStop();
-  var box=document.getElementById('owLive'); if(!box) return;
-  var tick=function(){
-    var pg=document.getElementById('cityDetPage');
-    if(!pg||pg.style.display!=='block'||_cdCity!==city){ owLiveStop(); return; }
-    if(!glHasGAS()){ box.textContent='Live location works on the real app (needs the server).'; owLiveStop(); return; }
-    google.script.run.withSuccessHandler(owLiveRender).withFailureHandler(function(){}).getOwnerLive(city,window._admKey||'');
-  };
-  tick(); _owLiveT=setInterval(tick,5000);
-}
-function owLiveRender(r){
-  var box=document.getElementById('owLive'), tag=document.getElementById('owLiveTag'); if(!box||!tag) return;
-  if(!r||!r.found){ tag.textContent='—'; box.textContent='No owner yet.'; box.removeAttribute('data-k'); return; }
-  if(!r.enabled){ tag.textContent='OFF'; box.textContent='Live Location is switched OFF for this owner.'; box.removeAttribute('data-k'); return; }
-  if(r.lat==null){ tag.textContent='WAITING'; box.textContent='Waiting for the owner to open the app and share a location…'; box.removeAttribute('data-k'); return; }
-  var key=r.lat.toFixed(5)+','+r.lng.toFixed(5);
-  tag.textContent=(r.age<90?'LIVE':'LAST SEEN')+' · '+(r.age<60?r.age+'s ago':(r.age<3600?Math.round(r.age/60)+' min ago':Math.round(r.age/3600)+' h ago'));
-  if(box.getAttribute('data-k')!==key){
-    box.setAttribute('data-k',key);
-    box.innerHTML='<iframe title="Owner location" loading="lazy" style="width:100%;height:260px;border:0;border-radius:12px" src="https://maps.google.com/maps?q='+key+'&z=16&output=embed"></iframe>'
-      +'<div style="padding:10px 0 4px"><a href="https://www.google.com/maps?q='+key+'" target="_blank" rel="noopener" style="color:var(--neon-cyan)">Open in Google Maps ↗</a></div>';
-  }
 }
 
 /* (4) Public Listing: owners with the switch ON are listed for players (Race arena + Dig arena) */
@@ -7516,10 +7444,6 @@ try{ console.log('NEXIS build r9 · no green profile bar · owner has no locatio
   function good(p){
     busy=false; fails=0; okOnce=true; unlock();
     var now=Date.now();
-    if(cu && cu.role==='owner' && now-lastSend>=8000){
-      lastSend=now;
-      try{ google.script.run.withSuccessHandler(function(){}).withFailureHandler(function(){}).saveOwnerLocation(cu.username,p.coords.latitude,p.coords.longitude); }catch(e){}
-    }
   }
   function bad(e){
     busy=false; fails++;
